@@ -1,0 +1,55 @@
+name: agro_audit_rj
+description: "App de Auditoria e Recuperação Judicial para o Agronegócio."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.1.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # --- Core & UI ---
+  flutter_riverpod: ^2.5.1
+  intl: ^0.19.0
+  cupertino_icons: ^1.0.6
+  gap: ^3.0.0
+
+  # --- Banco de Dados Local ---
+  isar: ^3.1.0
+  isar_flutter_libs: ^3.1.0
+  path_provider: ^2.1.2
+
+  # --- Hardware ---
+  camera: ^0.10.5+9
+  geolocator: ^11.0.0
+  permission_handler: ^11.3.0
+  native_exif:   # <--- Deixei sem versão propositalmente
+  google_maps_flutter: ^2.6.0
+
+  # --- Arquivos ---
+  file_picker:   # <--- Deixei sem versão propositalmente
+  image_picker: ^1.0.7
+  excel: ^4.0.2
+  image: ^4.1.7
+  flutter_image_compress: ^2.2.0
+
+  # --- Exportação ---
+  docx_template: # <--- Deixei sem versão propositalmente
+  share_plus:    # <--- Deixei sem versão propositalmente
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+  
+  # --- Geradores de Código (Vital para o Isar funcionar) ---
+  build_runner: ^2.4.8
+  isar_generator: ^3.1.0
+
+flutter:
+  uses-material-design: true
+
+  # assets:
+  #   - assets/images/
