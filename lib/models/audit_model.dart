@@ -1,20 +1,15 @@
 import 'package:isar/isar.dart';
 
-// O arquivo .g.dart será gerado automaticamente depois
 part 'audit_model.g.dart';
 
 @collection
 class Project {
   Id id = Isar.autoIncrement;
-
-  late String name; // Ex: "Grupo Garcia"
+  late String name;
   late DateTime createdAt;
   String? description;
 
-  // Um projeto tem vários itens de maquinário
   final assets = IsarLinks<AssetItem>();
-
-  // Um projeto tem várias propriedades (fazendas)
   final properties = IsarLinks<PropertyItem>();
 }
 
@@ -22,45 +17,44 @@ class Project {
 class AssetItem {
   Id id = Isar.autoIncrement;
 
-  // --- Dados do Excel ---
-  late String description; // "Trator John Deere"
-  String? serialNumber; // "CTP 4965..."
-  String? plate; // "ABC-1234"
-  late String category; // "Maquinário"
+  late String description;
+  String? serialNumber;
+  String? plate;
+  late String category;
+  
+  String? municipality;
+  String? state;
 
-  // --- Dados da Auditoria ---
   @Enumerated(EnumType.ordinal)
   AuditStatus status = AuditStatus.pending;
 
   String? obsField;
   DateTime? auditDate;
-
-  // Caminhos das fotos no celular
   List<String>? photoPaths;
-
-  // Onde foi encontrado
   double? auditLat;
   double? auditLong;
+
+  @Backlink(to: 'assets')
+  final project = IsarLink<Project>();
 }
 
 @collection
 class PropertyItem {
   Id id = Isar.autoIncrement;
 
-  late String name; // "Fazenda Cedral"
-  late String matricula; // "906"
+  late String name;
+  late String matricula;
   late String city;
+  String? state; // Adicionado para bater com seu Excel
 
-  // Ponto de referência para o match do drone
-  double? referenceLat;
+  // Podem armazenar tanto Graus Decimais quanto UTM (como double)
+  double? referenceLat; 
   double? referenceLong;
 
   List<String>? dronePhotoPaths;
+
+  @Backlink(to: 'properties')
+  final project = IsarLink<Project>();
 }
 
-enum AuditStatus {
-  pending, // Pendente
-  found, // Encontrado
-  notFound, // Não Encontrado
-  seized, // Apreendido
-}
+enum AuditStatus { pending, found, notFound, seized }

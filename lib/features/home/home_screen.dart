@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:isar/isar.dart';
 import 'package:gap/gap.dart';
-// IMPORTANTE: Use o nome do seu projeto aqui
 import 'package:agro_audit_rj/data/local_db.dart';
 import 'package:agro_audit_rj/models/audit_model.dart';
+import 'package:agro_audit_rj/features/audit/audit_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -13,46 +13,74 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  // Função para criar um novo projeto
-  void _createNewProject() {
-    final textController = TextEditingController();
+  
+  // Função para Criar ou Editar Projeto
+  void _showProjectDialog({Project? project}) {
+    final textController = TextEditingController(text: project?.name);
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Novo Projeto de Auditoria'),
+        title: Text(project == null ? 'Novo Projeto' : 'Editar Projeto'),
         content: TextField(
           controller: textController,
           decoration: const InputDecoration(
             labelText: 'Nome do Cliente / Grupo',
-            hintText: 'Ex: Grupo Garcia',
             border: OutlineInputBorder(),
           ),
           autofocus: true,
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
           FilledButton(
             onPressed: () async {
               if (textController.text.isNotEmpty) {
-                // 1. Cria o objeto
-                final newProject = Project()
-                  ..name = textController.text
-                  ..createdAt = DateTime.now();
-
-                // 2. Salva no Banco (Isar)
                 final isar = LocalDB.instance;
                 await isar.writeTxn(() async {
-                  await isar.projects.put(newProject);
+                  if (project == null) {
+                    // Novo
+                    final newProject = Project()
+                      ..name = textController.text
+                      ..createdAt = DateTime.now();
+                    await isar.projects.put(newProject);
+                  } else {
+                    // Editar
+                    project.name = textController.text;
+                    await isar.projects.put(project);
+                  }
                 });
-
                 if (context.mounted) Navigator.pop(context);
               }
             },
-            child: const Text('Criar'),
+            child: const Text('Salvar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Função para Excluir Projeto e seus itens (Cascata)
+  void _confirmDelete(Project project) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Excluir Projeto?'),
+        content: Text('Isso apagará todos os tratores e fazendas de "${project.name}". Esta ação não pode ser desfeita.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+          TextButton(
+            onPressed: () async {
+              final isar = LocalDB.instance;
+              await isar.writeTxn(() async {
+                // Apaga os itens vinculados primeiro para limpar o banco
+                await isar.assetItems.filter().project((q) => q.idEqualTo(project.id)).deleteAll();
+                await isar.propertyItems.filter().project((q) => q.idEqualTo(project.id)).deleteAll();
+                // Apaga o projeto
+                await isar.projects.delete(project.id);
+              });
+              if (context.mounted) Navigator.pop(context);
+            },
+            child: const Text('Excluir', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -62,46 +90,17 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Agro Audit RJ'),
-        centerTitle: true,
-        elevation: 2,
-      ),
+      appBar: AppBar(title: const Text('Agro Audit RJ'), centerTitle: true),
       body: StreamBuilder<List<Project>>(
-        // O segredo: Isso aqui fica vigiando o banco de dados em tempo real
-        stream: LocalDB.instance.projects
-            .where()
-            .sortByName()
-            .watch(fireImmediately: true),
+        stream: LocalDB.instance.projects.where().sortByName().watch(fireImmediately: true),
         builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Center(child: Text('Erro: ${snapshot.error}'));
-          }
-
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
+          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
           final projects = snapshot.data!;
 
           if (projects.isEmpty) {
-            return const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.folder_open, size: 80, color: Colors.grey),
-                  Gap(16),
-                  Text(
-                    'Nenhum projeto ainda.',
-                    style: TextStyle(fontSize: 18, color: Colors.grey),
-                  ),
-                  Text('Clique no + para começar.'),
-                ],
-              ),
-            );
+            return const Center(child: Text('Nenhum projeto ainda. Clique no +'));
           }
 
-          // Lista de Projetos
           return ListView.builder(
             padding: const EdgeInsets.all(16),
             itemCount: projects.length,
@@ -112,20 +111,23 @@ class _HomeScreenState extends State<HomeScreen> {
                 margin: const EdgeInsets.only(bottom: 12),
                 child: ListTile(
                   leading: const CircleAvatar(
-                    backgroundColor: Color(0xFF2E7D32), // Verde Agro
+                    backgroundColor: Color(0xFF2E7D32),
                     child: Icon(Icons.agriculture, color: Colors.white),
                   ),
-                  title: Text(
-                    project.name,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  title: Text(project.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  subtitle: Text('Criado em: ${project.createdAt.day}/${project.createdAt.month}/${project.createdAt.year}'),
+                  trailing: PopupMenuButton(
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(value: 'edit', child: Text('Editar Nome')),
+                      const PopupMenuItem(value: 'delete', child: Text('Excluir Tudo', style: TextStyle(color: Colors.red))),
+                    ],
+                    onSelected: (value) {
+                      if (value == 'edit') _showProjectDialog(project: project);
+                      if (value == 'delete') _confirmDelete(project);
+                    },
                   ),
-                  subtitle: Text(
-                    'Criado em: ${project.createdAt.day}/${project.createdAt.month}/${project.createdAt.year}',
-                  ),
-                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                   onTap: () {
-                    // Aqui vamos navegar para a tela de detalhes depois
-                    print('Clicou no projeto: ${project.name}');
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => AuditScreen(project: project)));
                   },
                 ),
               );
@@ -134,7 +136,7 @@ class _HomeScreenState extends State<HomeScreen> {
         },
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: _createNewProject,
+        onPressed: () => _showProjectDialog(),
         label: const Text('Novo Projeto'),
         icon: const Icon(Icons.add),
         backgroundColor: const Color(0xFF2E7D32),

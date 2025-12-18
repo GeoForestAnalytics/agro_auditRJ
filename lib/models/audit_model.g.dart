@@ -889,28 +889,38 @@ const AssetItemSchema = CollectionSchema(
       name: r'description',
       type: IsarType.string,
     ),
-    r'obsField': PropertySchema(
+    r'municipality': PropertySchema(
       id: 5,
+      name: r'municipality',
+      type: IsarType.string,
+    ),
+    r'obsField': PropertySchema(
+      id: 6,
       name: r'obsField',
       type: IsarType.string,
     ),
     r'photoPaths': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'photoPaths',
       type: IsarType.stringList,
     ),
     r'plate': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'plate',
       type: IsarType.string,
     ),
     r'serialNumber': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'serialNumber',
       type: IsarType.string,
     ),
+    r'state': PropertySchema(
+      id: 10,
+      name: r'state',
+      type: IsarType.string,
+    ),
     r'status': PropertySchema(
-      id: 9,
+      id: 11,
       name: r'status',
       type: IsarType.byte,
       enumMap: _AssetItemstatusEnumValueMap,
@@ -922,7 +932,15 @@ const AssetItemSchema = CollectionSchema(
   deserializeProp: _assetItemDeserializeProp,
   idName: r'id',
   indexes: {},
-  links: {},
+  links: {
+    r'project': LinkSchema(
+      id: -2511487201249480924,
+      name: r'project',
+      target: r'Project',
+      single: true,
+      linkName: r'assets',
+    )
+  },
   embeddedSchemas: {},
   getId: _assetItemGetId,
   getLinks: _assetItemGetLinks,
@@ -938,6 +956,12 @@ int _assetItemEstimateSize(
   var bytesCount = offsets.last;
   bytesCount += 3 + object.category.length * 3;
   bytesCount += 3 + object.description.length * 3;
+  {
+    final value = object.municipality;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   {
     final value = object.obsField;
     if (value != null) {
@@ -968,6 +992,12 @@ int _assetItemEstimateSize(
       bytesCount += 3 + value.length * 3;
     }
   }
+  {
+    final value = object.state;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   return bytesCount;
 }
 
@@ -982,11 +1012,13 @@ void _assetItemSerialize(
   writer.writeDouble(offsets[2], object.auditLong);
   writer.writeString(offsets[3], object.category);
   writer.writeString(offsets[4], object.description);
-  writer.writeString(offsets[5], object.obsField);
-  writer.writeStringList(offsets[6], object.photoPaths);
-  writer.writeString(offsets[7], object.plate);
-  writer.writeString(offsets[8], object.serialNumber);
-  writer.writeByte(offsets[9], object.status.index);
+  writer.writeString(offsets[5], object.municipality);
+  writer.writeString(offsets[6], object.obsField);
+  writer.writeStringList(offsets[7], object.photoPaths);
+  writer.writeString(offsets[8], object.plate);
+  writer.writeString(offsets[9], object.serialNumber);
+  writer.writeString(offsets[10], object.state);
+  writer.writeByte(offsets[11], object.status.index);
 }
 
 AssetItem _assetItemDeserialize(
@@ -1002,12 +1034,14 @@ AssetItem _assetItemDeserialize(
   object.category = reader.readString(offsets[3]);
   object.description = reader.readString(offsets[4]);
   object.id = id;
-  object.obsField = reader.readStringOrNull(offsets[5]);
-  object.photoPaths = reader.readStringList(offsets[6]);
-  object.plate = reader.readStringOrNull(offsets[7]);
-  object.serialNumber = reader.readStringOrNull(offsets[8]);
+  object.municipality = reader.readStringOrNull(offsets[5]);
+  object.obsField = reader.readStringOrNull(offsets[6]);
+  object.photoPaths = reader.readStringList(offsets[7]);
+  object.plate = reader.readStringOrNull(offsets[8]);
+  object.serialNumber = reader.readStringOrNull(offsets[9]);
+  object.state = reader.readStringOrNull(offsets[10]);
   object.status =
-      _AssetItemstatusValueEnumMap[reader.readByteOrNull(offsets[9])] ??
+      _AssetItemstatusValueEnumMap[reader.readByteOrNull(offsets[11])] ??
           AuditStatus.pending;
   return object;
 }
@@ -1032,12 +1066,16 @@ P _assetItemDeserializeProp<P>(
     case 5:
       return (reader.readStringOrNull(offset)) as P;
     case 6:
-      return (reader.readStringList(offset)) as P;
-    case 7:
       return (reader.readStringOrNull(offset)) as P;
+    case 7:
+      return (reader.readStringList(offset)) as P;
     case 8:
       return (reader.readStringOrNull(offset)) as P;
     case 9:
+      return (reader.readStringOrNull(offset)) as P;
+    case 10:
+      return (reader.readStringOrNull(offset)) as P;
+    case 11:
       return (_AssetItemstatusValueEnumMap[reader.readByteOrNull(offset)] ??
           AuditStatus.pending) as P;
     default:
@@ -1063,11 +1101,12 @@ Id _assetItemGetId(AssetItem object) {
 }
 
 List<IsarLinkBase<dynamic>> _assetItemGetLinks(AssetItem object) {
-  return [];
+  return [object.project];
 }
 
 void _assetItemAttach(IsarCollection<dynamic> col, Id id, AssetItem object) {
   object.id = id;
+  object.project.attach(col, col.isar.collection<Project>(), r'project', id);
 }
 
 extension AssetItemQueryWhereSort
@@ -1693,6 +1732,159 @@ extension AssetItemQueryFilter
         includeLower: includeLower,
         upper: upper,
         includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetItem, AssetItem, QAfterFilterCondition>
+      municipalityIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'municipality',
+      ));
+    });
+  }
+
+  QueryBuilder<AssetItem, AssetItem, QAfterFilterCondition>
+      municipalityIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'municipality',
+      ));
+    });
+  }
+
+  QueryBuilder<AssetItem, AssetItem, QAfterFilterCondition> municipalityEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'municipality',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetItem, AssetItem, QAfterFilterCondition>
+      municipalityGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'municipality',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetItem, AssetItem, QAfterFilterCondition>
+      municipalityLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'municipality',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetItem, AssetItem, QAfterFilterCondition> municipalityBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'municipality',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetItem, AssetItem, QAfterFilterCondition>
+      municipalityStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'municipality',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetItem, AssetItem, QAfterFilterCondition>
+      municipalityEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'municipality',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetItem, AssetItem, QAfterFilterCondition>
+      municipalityContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'municipality',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetItem, AssetItem, QAfterFilterCondition> municipalityMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'municipality',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetItem, AssetItem, QAfterFilterCondition>
+      municipalityIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'municipality',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<AssetItem, AssetItem, QAfterFilterCondition>
+      municipalityIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'municipality',
+        value: '',
       ));
     });
   }
@@ -2386,6 +2578,152 @@ extension AssetItemQueryFilter
     });
   }
 
+  QueryBuilder<AssetItem, AssetItem, QAfterFilterCondition> stateIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'state',
+      ));
+    });
+  }
+
+  QueryBuilder<AssetItem, AssetItem, QAfterFilterCondition> stateIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'state',
+      ));
+    });
+  }
+
+  QueryBuilder<AssetItem, AssetItem, QAfterFilterCondition> stateEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'state',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetItem, AssetItem, QAfterFilterCondition> stateGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'state',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetItem, AssetItem, QAfterFilterCondition> stateLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'state',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetItem, AssetItem, QAfterFilterCondition> stateBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'state',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetItem, AssetItem, QAfterFilterCondition> stateStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'state',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetItem, AssetItem, QAfterFilterCondition> stateEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'state',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetItem, AssetItem, QAfterFilterCondition> stateContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'state',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetItem, AssetItem, QAfterFilterCondition> stateMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'state',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetItem, AssetItem, QAfterFilterCondition> stateIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'state',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<AssetItem, AssetItem, QAfterFilterCondition> stateIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'state',
+        value: '',
+      ));
+    });
+  }
+
   QueryBuilder<AssetItem, AssetItem, QAfterFilterCondition> statusEqualTo(
       AuditStatus value) {
     return QueryBuilder.apply(this, (query) {
@@ -2444,7 +2782,20 @@ extension AssetItemQueryObject
     on QueryBuilder<AssetItem, AssetItem, QFilterCondition> {}
 
 extension AssetItemQueryLinks
-    on QueryBuilder<AssetItem, AssetItem, QFilterCondition> {}
+    on QueryBuilder<AssetItem, AssetItem, QFilterCondition> {
+  QueryBuilder<AssetItem, AssetItem, QAfterFilterCondition> project(
+      FilterQuery<Project> q) {
+    return QueryBuilder.apply(this, (query) {
+      return query.link(q, r'project');
+    });
+  }
+
+  QueryBuilder<AssetItem, AssetItem, QAfterFilterCondition> projectIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.linkLength(r'project', 0, true, 0, true);
+    });
+  }
+}
 
 extension AssetItemQuerySortBy on QueryBuilder<AssetItem, AssetItem, QSortBy> {
   QueryBuilder<AssetItem, AssetItem, QAfterSortBy> sortByAuditDate() {
@@ -2507,6 +2858,18 @@ extension AssetItemQuerySortBy on QueryBuilder<AssetItem, AssetItem, QSortBy> {
     });
   }
 
+  QueryBuilder<AssetItem, AssetItem, QAfterSortBy> sortByMunicipality() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'municipality', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AssetItem, AssetItem, QAfterSortBy> sortByMunicipalityDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'municipality', Sort.desc);
+    });
+  }
+
   QueryBuilder<AssetItem, AssetItem, QAfterSortBy> sortByObsField() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'obsField', Sort.asc);
@@ -2540,6 +2903,18 @@ extension AssetItemQuerySortBy on QueryBuilder<AssetItem, AssetItem, QSortBy> {
   QueryBuilder<AssetItem, AssetItem, QAfterSortBy> sortBySerialNumberDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'serialNumber', Sort.desc);
+    });
+  }
+
+  QueryBuilder<AssetItem, AssetItem, QAfterSortBy> sortByState() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'state', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AssetItem, AssetItem, QAfterSortBy> sortByStateDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'state', Sort.desc);
     });
   }
 
@@ -2630,6 +3005,18 @@ extension AssetItemQuerySortThenBy
     });
   }
 
+  QueryBuilder<AssetItem, AssetItem, QAfterSortBy> thenByMunicipality() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'municipality', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AssetItem, AssetItem, QAfterSortBy> thenByMunicipalityDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'municipality', Sort.desc);
+    });
+  }
+
   QueryBuilder<AssetItem, AssetItem, QAfterSortBy> thenByObsField() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'obsField', Sort.asc);
@@ -2663,6 +3050,18 @@ extension AssetItemQuerySortThenBy
   QueryBuilder<AssetItem, AssetItem, QAfterSortBy> thenBySerialNumberDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'serialNumber', Sort.desc);
+    });
+  }
+
+  QueryBuilder<AssetItem, AssetItem, QAfterSortBy> thenByState() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'state', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AssetItem, AssetItem, QAfterSortBy> thenByStateDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'state', Sort.desc);
     });
   }
 
@@ -2713,6 +3112,13 @@ extension AssetItemQueryWhereDistinct
     });
   }
 
+  QueryBuilder<AssetItem, AssetItem, QDistinct> distinctByMunicipality(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'municipality', caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<AssetItem, AssetItem, QDistinct> distinctByObsField(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -2737,6 +3143,13 @@ extension AssetItemQueryWhereDistinct
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'serialNumber', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<AssetItem, AssetItem, QDistinct> distinctByState(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'state', caseSensitive: caseSensitive);
     });
   }
 
@@ -2785,6 +3198,12 @@ extension AssetItemQueryProperty
     });
   }
 
+  QueryBuilder<AssetItem, String?, QQueryOperations> municipalityProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'municipality');
+    });
+  }
+
   QueryBuilder<AssetItem, String?, QQueryOperations> obsFieldProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'obsField');
@@ -2807,6 +3226,12 @@ extension AssetItemQueryProperty
   QueryBuilder<AssetItem, String?, QQueryOperations> serialNumberProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'serialNumber');
+    });
+  }
+
+  QueryBuilder<AssetItem, String?, QQueryOperations> stateProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'state');
     });
   }
 
@@ -2857,6 +3282,11 @@ const PropertyItemSchema = CollectionSchema(
       id: 5,
       name: r'referenceLong',
       type: IsarType.double,
+    ),
+    r'state': PropertySchema(
+      id: 6,
+      name: r'state',
+      type: IsarType.string,
     )
   },
   estimateSize: _propertyItemEstimateSize,
@@ -2865,7 +3295,15 @@ const PropertyItemSchema = CollectionSchema(
   deserializeProp: _propertyItemDeserializeProp,
   idName: r'id',
   indexes: {},
-  links: {},
+  links: {
+    r'project': LinkSchema(
+      id: -7593236659824737905,
+      name: r'project',
+      target: r'Project',
+      single: true,
+      linkName: r'properties',
+    )
+  },
   embeddedSchemas: {},
   getId: _propertyItemGetId,
   getLinks: _propertyItemGetLinks,
@@ -2894,6 +3332,12 @@ int _propertyItemEstimateSize(
   }
   bytesCount += 3 + object.matricula.length * 3;
   bytesCount += 3 + object.name.length * 3;
+  {
+    final value = object.state;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   return bytesCount;
 }
 
@@ -2909,6 +3353,7 @@ void _propertyItemSerialize(
   writer.writeString(offsets[3], object.name);
   writer.writeDouble(offsets[4], object.referenceLat);
   writer.writeDouble(offsets[5], object.referenceLong);
+  writer.writeString(offsets[6], object.state);
 }
 
 PropertyItem _propertyItemDeserialize(
@@ -2925,6 +3370,7 @@ PropertyItem _propertyItemDeserialize(
   object.name = reader.readString(offsets[3]);
   object.referenceLat = reader.readDoubleOrNull(offsets[4]);
   object.referenceLong = reader.readDoubleOrNull(offsets[5]);
+  object.state = reader.readStringOrNull(offsets[6]);
   return object;
 }
 
@@ -2947,6 +3393,8 @@ P _propertyItemDeserializeProp<P>(
       return (reader.readDoubleOrNull(offset)) as P;
     case 5:
       return (reader.readDoubleOrNull(offset)) as P;
+    case 6:
+      return (reader.readStringOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
   }
@@ -2957,12 +3405,13 @@ Id _propertyItemGetId(PropertyItem object) {
 }
 
 List<IsarLinkBase<dynamic>> _propertyItemGetLinks(PropertyItem object) {
-  return [];
+  return [object.project];
 }
 
 void _propertyItemAttach(
     IsarCollection<dynamic> col, Id id, PropertyItem object) {
   object.id = id;
+  object.project.attach(col, col.isar.collection<Project>(), r'project', id);
 }
 
 extension PropertyItemQueryWhereSort
@@ -3915,13 +4364,179 @@ extension PropertyItemQueryFilter
       ));
     });
   }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      stateIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'state',
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      stateIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'state',
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition> stateEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'state',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      stateGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'state',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition> stateLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'state',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition> stateBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'state',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      stateStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'state',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition> stateEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'state',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition> stateContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'state',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition> stateMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'state',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      stateIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'state',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      stateIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'state',
+        value: '',
+      ));
+    });
+  }
 }
 
 extension PropertyItemQueryObject
     on QueryBuilder<PropertyItem, PropertyItem, QFilterCondition> {}
 
 extension PropertyItemQueryLinks
-    on QueryBuilder<PropertyItem, PropertyItem, QFilterCondition> {}
+    on QueryBuilder<PropertyItem, PropertyItem, QFilterCondition> {
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition> project(
+      FilterQuery<Project> q) {
+    return QueryBuilder.apply(this, (query) {
+      return query.link(q, r'project');
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      projectIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.linkLength(r'project', 0, true, 0, true);
+    });
+  }
+}
 
 extension PropertyItemQuerySortBy
     on QueryBuilder<PropertyItem, PropertyItem, QSortBy> {
@@ -3984,6 +4599,18 @@ extension PropertyItemQuerySortBy
       sortByReferenceLongDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'referenceLong', Sort.desc);
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterSortBy> sortByState() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'state', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterSortBy> sortByStateDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'state', Sort.desc);
     });
   }
 }
@@ -4063,6 +4690,18 @@ extension PropertyItemQuerySortThenBy
       return query.addSortBy(r'referenceLong', Sort.desc);
     });
   }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterSortBy> thenByState() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'state', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterSortBy> thenByStateDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'state', Sort.desc);
+    });
+  }
 }
 
 extension PropertyItemQueryWhereDistinct
@@ -4105,6 +4744,13 @@ extension PropertyItemQueryWhereDistinct
       distinctByReferenceLong() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'referenceLong');
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QDistinct> distinctByState(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'state', caseSensitive: caseSensitive);
     });
   }
 }
@@ -4152,6 +4798,12 @@ extension PropertyItemQueryProperty
       referenceLongProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'referenceLong');
+    });
+  }
+
+  QueryBuilder<PropertyItem, String?, QQueryOperations> stateProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'state');
     });
   }
 }
