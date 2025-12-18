@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:agro_audit_rj/models/audit_model.dart';
 import 'package:agro_audit_rj/data/local_db.dart';
+import 'package:agro_audit_rj/features/audit/camera_capture_screen.dart'; // Import da câmera
 import 'package:gap/gap.dart';
 
 class AssetDetailScreen extends StatefulWidget {
@@ -15,55 +16,52 @@ class AssetDetailScreen extends StatefulWidget {
 class _AssetDetailScreenState extends State<AssetDetailScreen> {
   late TextEditingController _obsController;
   late AuditStatus _selectedStatus;
+  late List<String> _photos; // Lista local para gerenciar na tela
 
   @override
   void initState() {
     super.initState();
     _obsController = TextEditingController(text: widget.item.obsField);
     _selectedStatus = widget.item.status;
+    _photos = widget.item.photoPaths?.toList() ?? [];
   }
 
-  // === FUNÇÃO: SALVAR ALTERAÇÕES ===
   Future<void> _saveChanges() async {
     final isar = LocalDB.instance;
     await isar.writeTxn(() async {
       widget.item.status = _selectedStatus;
       widget.item.obsField = _obsController.text;
+      widget.item.photoPaths = _photos; // Salva a lista de fotos atualizada
       await isar.assetItems.put(widget.item);
     });
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Alterações salvas com sucesso!")),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Salvo!")));
       Navigator.pop(context);
     }
   }
 
-  // === FUNÇÃO: EXCLUIR ESTE ITEM (Caso importe errado) ===
-  void _confirmDelete() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Excluir item?"),
-        content: const Text("Deseja apagar este item permanentemente da lista?"),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancelar")),
-          TextButton(
-            onPressed: () async {
-              final isar = LocalDB.instance;
-              await isar.writeTxn(() async {
-                await isar.assetItems.delete(widget.item.id);
-              });
-              if (mounted) {
-                Navigator.pop(context); // Fecha o alerta
-                Navigator.pop(context); // Volta para a lista
-              }
-            },
-            child: const Text("Excluir", style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
+  // Função para tirar NOVA foto
+  Future<void> _addPhoto() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => CameraCaptureScreen(assetName: widget.item.description))
     );
+
+    if (result != null && result is Map) {
+      setState(() {
+        _photos.add(result['path']); // Adiciona na lista visual
+        // Se ainda estava pendente, muda pra encontrado
+        if (_selectedStatus == AuditStatus.pending) {
+          _selectedStatus = AuditStatus.found; 
+        }
+      });
+    }
+  }
+
+  void _removePhoto(int index) {
+    setState(() {
+      _photos.removeAt(index);
+    });
   }
 
   @override
@@ -72,18 +70,7 @@ class _AssetDetailScreenState extends State<AssetDetailScreen> {
       appBar: AppBar(
         title: const Text("Detalhes do Bem"),
         actions: [
-          // Botão para excluir o item
-          IconButton(
-            icon: const Icon(Icons.delete_outline, color: Colors.white),
-            onPressed: _confirmDelete,
-            tooltip: "Excluir item",
-          ),
-          // Botão para salvar
-          IconButton(
-            icon: const Icon(Icons.check, color: Colors.white),
-            onPressed: _saveChanges,
-            tooltip: "Salvar",
-          ),
+          IconButton(icon: const Icon(Icons.check, color: Colors.white), onPressed: _saveChanges),
         ],
       ),
       body: SingleChildScrollView(
@@ -91,99 +78,82 @@ class _AssetDetailScreenState extends State<AssetDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Preview da Imagem
-            if (widget.item.photoPaths != null && widget.item.photoPaths!.isNotEmpty)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Image.file(
-                  File(widget.item.photoPaths!.first),
-                  height: 250,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                ),
-              )
-            else
-              Container(
-                height: 150,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: Colors.grey[200],
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(Icons.image_not_supported, size: 50, color: Colors.grey),
+            // --- GALERIA DE FOTOS ---
+            const Text("Evidências Fotográficas", style: TextStyle(fontWeight: FontWeight.bold)),
+            const Gap(10),
+            SizedBox(
+              height: 140,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: _photos.length + 1, // +1 para o botão de adicionar
+                itemBuilder: (context, index) {
+                  // Botão de Adicionar (Último item)
+                  if (index == _photos.length) {
+                    return GestureDetector(
+                      onTap: _addPhoto,
+                      child: Container(
+                        width: 100,
+                        margin: const EdgeInsets.only(right: 10),
+                        decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(10)),
+                        child: const Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [Icon(Icons.add_a_photo, size: 30), Text("Adicionar")],
+                        ),
+                      ),
+                    );
+                  }
+
+                  // Card da Foto
+                  return Stack(
+                    children: [
+                      Container(
+                        width: 140,
+                        margin: const EdgeInsets.only(right: 10),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: Image.file(File(_photos[index]), fit: BoxFit.cover),
+                        ),
+                      ),
+                      Positioned(
+                        right: 15, top: 5,
+                        child: InkWell(
+                          onTap: () => _removePhoto(index),
+                          child: const CircleAvatar(backgroundColor: Colors.red, radius: 10, child: Icon(Icons.close, size: 12, color: Colors.white)),
+                        ),
+                      )
+                    ],
+                  );
+                },
               ),
+            ),
 
             const Gap(20),
-            Text(widget.item.description, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-            Text("Cidade: ${widget.item.municipality} - ${widget.item.state}", style: const TextStyle(fontSize: 16, color: Colors.grey)),
+            Text(widget.item.description, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            Text("Série: ${widget.item.serialNumber ?? '-'}", style: const TextStyle(color: Colors.grey)),
             
             const Gap(24),
-            const Text("Status da Auditoria", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            const Gap(12),
-            
-            // Seletor de Status (ChoiceChips para não cortar texto)
+            const Text("Status", style: TextStyle(fontWeight: FontWeight.bold)),
             Wrap(
               spacing: 8,
-              runSpacing: 8,
-              children: AuditStatus.values.map((status) {
-                final isSelected = _selectedStatus == status;
+              children: AuditStatus.values.map((s) {
                 return ChoiceChip(
-                  label: Text(_translateStatus(status)),
-                  selected: isSelected,
-                  onSelected: (val) => setState(() => _selectedStatus = status),
-                  selectedColor: _getStatusColor(status).withOpacity(0.3),
-                  checkmarkColor: _getStatusColor(status),
+                  label: Text(_statusLabel(s)),
+                  selected: _selectedStatus == s,
+                  onSelected: (v) => setState(() => _selectedStatus = s),
+                  selectedColor: _statusColor(s).withOpacity(0.3),
                 );
               }).toList(),
             ),
 
             const Gap(24),
-            const Text("Observações Técnicas", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            const Gap(8),
-            TextField(
-              controller: _obsController,
-              maxLines: 4,
-              decoration: const InputDecoration(
-                hintText: "Descreva o estado do item...",
-                border: OutlineInputBorder(),
-              ),
-            ),
-
-            const Gap(24),
-            // Dados Geográficos
-            if (widget.item.auditLat != null)
-              Card(
-                elevation: 0,
-                color: Colors.green[50],
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                child: ListTile(
-                  leading: const Icon(Icons.location_on, color: Colors.green),
-                  title: const Text("Localização da Captura"),
-                  subtitle: Text("Lat: ${widget.item.auditLat}\nLong: ${widget.item.auditLong}"),
-                ),
-              ),
+            const Text("Observações", style: TextStyle(fontWeight: FontWeight.bold)),
+            TextField(controller: _obsController, maxLines: 3, decoration: const InputDecoration(border: OutlineInputBorder())),
           ],
         ),
       ),
     );
   }
 
-  // Traduções para evitar textos cortados ou confusos
-  String _translateStatus(AuditStatus s) {
-    switch (s) {
-      case AuditStatus.pending: return "Pendente";
-      case AuditStatus.found: return "Encontrado";
-      case AuditStatus.notFound: return "Não Localizado";
-      case AuditStatus.seized: return "Apreendido";
-    }
-  }
-
-  Color _getStatusColor(AuditStatus s) {
-    switch (s) {
-      case AuditStatus.pending: return Colors.grey;
-      case AuditStatus.found: return Colors.green;
-      case AuditStatus.notFound: return Colors.red;
-      case AuditStatus.seized: return Colors.orange;
-    }
-  }
+  String _statusLabel(AuditStatus s) => s.toString().split('.').last.toUpperCase();
+  Color _statusColor(AuditStatus s) => s == AuditStatus.found ? Colors.green : Colors.orange;
 }

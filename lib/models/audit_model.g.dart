@@ -3253,40 +3253,71 @@ const PropertyItemSchema = CollectionSchema(
   name: r'PropertyItem',
   id: 8803450964284793605,
   properties: {
-    r'city': PropertySchema(
+    r'auditDate': PropertySchema(
       id: 0,
+      name: r'auditDate',
+      type: IsarType.dateTime,
+    ),
+    r'auditLat': PropertySchema(
+      id: 1,
+      name: r'auditLat',
+      type: IsarType.double,
+    ),
+    r'auditLong': PropertySchema(
+      id: 2,
+      name: r'auditLong',
+      type: IsarType.double,
+    ),
+    r'city': PropertySchema(
+      id: 3,
       name: r'city',
       type: IsarType.string,
     ),
     r'dronePhotoPaths': PropertySchema(
-      id: 1,
+      id: 4,
       name: r'dronePhotoPaths',
       type: IsarType.stringList,
     ),
     r'matricula': PropertySchema(
-      id: 2,
+      id: 5,
       name: r'matricula',
       type: IsarType.string,
     ),
     r'name': PropertySchema(
-      id: 3,
+      id: 6,
       name: r'name',
       type: IsarType.string,
     ),
+    r'obsField': PropertySchema(
+      id: 7,
+      name: r'obsField',
+      type: IsarType.string,
+    ),
+    r'photoPaths': PropertySchema(
+      id: 8,
+      name: r'photoPaths',
+      type: IsarType.stringList,
+    ),
     r'referenceLat': PropertySchema(
-      id: 4,
+      id: 9,
       name: r'referenceLat',
       type: IsarType.double,
     ),
     r'referenceLong': PropertySchema(
-      id: 5,
+      id: 10,
       name: r'referenceLong',
       type: IsarType.double,
     ),
     r'state': PropertySchema(
-      id: 6,
+      id: 11,
       name: r'state',
       type: IsarType.string,
+    ),
+    r'status': PropertySchema(
+      id: 12,
+      name: r'status',
+      type: IsarType.byte,
+      enumMap: _PropertyItemstatusEnumValueMap,
     )
   },
   estimateSize: _propertyItemEstimateSize,
@@ -3333,6 +3364,24 @@ int _propertyItemEstimateSize(
   bytesCount += 3 + object.matricula.length * 3;
   bytesCount += 3 + object.name.length * 3;
   {
+    final value = object.obsField;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final list = object.photoPaths;
+    if (list != null) {
+      bytesCount += 3 + list.length * 3;
+      {
+        for (var i = 0; i < list.length; i++) {
+          final value = list[i];
+          bytesCount += value.length * 3;
+        }
+      }
+    }
+  }
+  {
     final value = object.state;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
@@ -3347,13 +3396,19 @@ void _propertyItemSerialize(
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
-  writer.writeString(offsets[0], object.city);
-  writer.writeStringList(offsets[1], object.dronePhotoPaths);
-  writer.writeString(offsets[2], object.matricula);
-  writer.writeString(offsets[3], object.name);
-  writer.writeDouble(offsets[4], object.referenceLat);
-  writer.writeDouble(offsets[5], object.referenceLong);
-  writer.writeString(offsets[6], object.state);
+  writer.writeDateTime(offsets[0], object.auditDate);
+  writer.writeDouble(offsets[1], object.auditLat);
+  writer.writeDouble(offsets[2], object.auditLong);
+  writer.writeString(offsets[3], object.city);
+  writer.writeStringList(offsets[4], object.dronePhotoPaths);
+  writer.writeString(offsets[5], object.matricula);
+  writer.writeString(offsets[6], object.name);
+  writer.writeString(offsets[7], object.obsField);
+  writer.writeStringList(offsets[8], object.photoPaths);
+  writer.writeDouble(offsets[9], object.referenceLat);
+  writer.writeDouble(offsets[10], object.referenceLong);
+  writer.writeString(offsets[11], object.state);
+  writer.writeByte(offsets[12], object.status.index);
 }
 
 PropertyItem _propertyItemDeserialize(
@@ -3363,14 +3418,22 @@ PropertyItem _propertyItemDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = PropertyItem();
-  object.city = reader.readString(offsets[0]);
-  object.dronePhotoPaths = reader.readStringList(offsets[1]);
+  object.auditDate = reader.readDateTimeOrNull(offsets[0]);
+  object.auditLat = reader.readDoubleOrNull(offsets[1]);
+  object.auditLong = reader.readDoubleOrNull(offsets[2]);
+  object.city = reader.readString(offsets[3]);
+  object.dronePhotoPaths = reader.readStringList(offsets[4]);
   object.id = id;
-  object.matricula = reader.readString(offsets[2]);
-  object.name = reader.readString(offsets[3]);
-  object.referenceLat = reader.readDoubleOrNull(offsets[4]);
-  object.referenceLong = reader.readDoubleOrNull(offsets[5]);
-  object.state = reader.readStringOrNull(offsets[6]);
+  object.matricula = reader.readString(offsets[5]);
+  object.name = reader.readString(offsets[6]);
+  object.obsField = reader.readStringOrNull(offsets[7]);
+  object.photoPaths = reader.readStringList(offsets[8]);
+  object.referenceLat = reader.readDoubleOrNull(offsets[9]);
+  object.referenceLong = reader.readDoubleOrNull(offsets[10]);
+  object.state = reader.readStringOrNull(offsets[11]);
+  object.status =
+      _PropertyItemstatusValueEnumMap[reader.readByteOrNull(offsets[12])] ??
+          AuditStatus.pending;
   return object;
 }
 
@@ -3382,23 +3445,49 @@ P _propertyItemDeserializeProp<P>(
 ) {
   switch (propertyId) {
     case 0:
-      return (reader.readString(offset)) as P;
+      return (reader.readDateTimeOrNull(offset)) as P;
     case 1:
-      return (reader.readStringList(offset)) as P;
+      return (reader.readDoubleOrNull(offset)) as P;
     case 2:
-      return (reader.readString(offset)) as P;
+      return (reader.readDoubleOrNull(offset)) as P;
     case 3:
       return (reader.readString(offset)) as P;
     case 4:
-      return (reader.readDoubleOrNull(offset)) as P;
+      return (reader.readStringList(offset)) as P;
     case 5:
-      return (reader.readDoubleOrNull(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 6:
+      return (reader.readString(offset)) as P;
+    case 7:
       return (reader.readStringOrNull(offset)) as P;
+    case 8:
+      return (reader.readStringList(offset)) as P;
+    case 9:
+      return (reader.readDoubleOrNull(offset)) as P;
+    case 10:
+      return (reader.readDoubleOrNull(offset)) as P;
+    case 11:
+      return (reader.readStringOrNull(offset)) as P;
+    case 12:
+      return (_PropertyItemstatusValueEnumMap[reader.readByteOrNull(offset)] ??
+          AuditStatus.pending) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
   }
 }
+
+const _PropertyItemstatusEnumValueMap = {
+  'pending': 0,
+  'found': 1,
+  'notFound': 2,
+  'seized': 3,
+};
+const _PropertyItemstatusValueEnumMap = {
+  0: AuditStatus.pending,
+  1: AuditStatus.found,
+  2: AuditStatus.notFound,
+  3: AuditStatus.seized,
+};
 
 Id _propertyItemGetId(PropertyItem object) {
   return object.id;
@@ -3495,6 +3584,248 @@ extension PropertyItemQueryWhere
 
 extension PropertyItemQueryFilter
     on QueryBuilder<PropertyItem, PropertyItem, QFilterCondition> {
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      auditDateIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'auditDate',
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      auditDateIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'auditDate',
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      auditDateEqualTo(DateTime? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'auditDate',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      auditDateGreaterThan(
+    DateTime? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'auditDate',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      auditDateLessThan(
+    DateTime? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'auditDate',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      auditDateBetween(
+    DateTime? lower,
+    DateTime? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'auditDate',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      auditLatIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'auditLat',
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      auditLatIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'auditLat',
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      auditLatEqualTo(
+    double? value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'auditLat',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      auditLatGreaterThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'auditLat',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      auditLatLessThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'auditLat',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      auditLatBetween(
+    double? lower,
+    double? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'auditLat',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      auditLongIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'auditLong',
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      auditLongIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'auditLong',
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      auditLongEqualTo(
+    double? value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'auditLong',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      auditLongGreaterThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'auditLong',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      auditLongLessThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'auditLong',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      auditLongBetween(
+    double? lower,
+    double? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'auditLong',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
   QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition> cityEqualTo(
     String value, {
     bool caseSensitive = true,
@@ -4198,6 +4529,403 @@ extension PropertyItemQueryFilter
   }
 
   QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      obsFieldIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'obsField',
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      obsFieldIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'obsField',
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      obsFieldEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'obsField',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      obsFieldGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'obsField',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      obsFieldLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'obsField',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      obsFieldBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'obsField',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      obsFieldStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'obsField',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      obsFieldEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'obsField',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      obsFieldContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'obsField',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      obsFieldMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'obsField',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      obsFieldIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'obsField',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      obsFieldIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'obsField',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      photoPathsIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'photoPaths',
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      photoPathsIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'photoPaths',
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      photoPathsElementEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'photoPaths',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      photoPathsElementGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'photoPaths',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      photoPathsElementLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'photoPaths',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      photoPathsElementBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'photoPaths',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      photoPathsElementStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'photoPaths',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      photoPathsElementEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'photoPaths',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      photoPathsElementContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'photoPaths',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      photoPathsElementMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'photoPaths',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      photoPathsElementIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'photoPaths',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      photoPathsElementIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'photoPaths',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      photoPathsLengthEqualTo(int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'photoPaths',
+        length,
+        true,
+        length,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      photoPathsIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'photoPaths',
+        0,
+        true,
+        0,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      photoPathsIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'photoPaths',
+        0,
+        false,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      photoPathsLengthLessThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'photoPaths',
+        0,
+        true,
+        length,
+        include,
+      );
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      photoPathsLengthGreaterThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'photoPaths',
+        length,
+        include,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      photoPathsLengthBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'photoPaths',
+        lower,
+        includeLower,
+        upper,
+        includeUpper,
+      );
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
       referenceLatIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -4516,6 +5244,61 @@ extension PropertyItemQueryFilter
       ));
     });
   }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition> statusEqualTo(
+      AuditStatus value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'status',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      statusGreaterThan(
+    AuditStatus value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'status',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      statusLessThan(
+    AuditStatus value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'status',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition> statusBetween(
+    AuditStatus lower,
+    AuditStatus upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'status',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
 }
 
 extension PropertyItemQueryObject
@@ -4540,6 +5323,42 @@ extension PropertyItemQueryLinks
 
 extension PropertyItemQuerySortBy
     on QueryBuilder<PropertyItem, PropertyItem, QSortBy> {
+  QueryBuilder<PropertyItem, PropertyItem, QAfterSortBy> sortByAuditDate() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'auditDate', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterSortBy> sortByAuditDateDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'auditDate', Sort.desc);
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterSortBy> sortByAuditLat() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'auditLat', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterSortBy> sortByAuditLatDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'auditLat', Sort.desc);
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterSortBy> sortByAuditLong() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'auditLong', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterSortBy> sortByAuditLongDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'auditLong', Sort.desc);
+    });
+  }
+
   QueryBuilder<PropertyItem, PropertyItem, QAfterSortBy> sortByCity() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'city', Sort.asc);
@@ -4573,6 +5392,18 @@ extension PropertyItemQuerySortBy
   QueryBuilder<PropertyItem, PropertyItem, QAfterSortBy> sortByNameDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'name', Sort.desc);
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterSortBy> sortByObsField() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'obsField', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterSortBy> sortByObsFieldDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'obsField', Sort.desc);
     });
   }
 
@@ -4613,10 +5444,58 @@ extension PropertyItemQuerySortBy
       return query.addSortBy(r'state', Sort.desc);
     });
   }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterSortBy> sortByStatus() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'status', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterSortBy> sortByStatusDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'status', Sort.desc);
+    });
+  }
 }
 
 extension PropertyItemQuerySortThenBy
     on QueryBuilder<PropertyItem, PropertyItem, QSortThenBy> {
+  QueryBuilder<PropertyItem, PropertyItem, QAfterSortBy> thenByAuditDate() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'auditDate', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterSortBy> thenByAuditDateDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'auditDate', Sort.desc);
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterSortBy> thenByAuditLat() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'auditLat', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterSortBy> thenByAuditLatDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'auditLat', Sort.desc);
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterSortBy> thenByAuditLong() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'auditLong', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterSortBy> thenByAuditLongDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'auditLong', Sort.desc);
+    });
+  }
+
   QueryBuilder<PropertyItem, PropertyItem, QAfterSortBy> thenByCity() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'city', Sort.asc);
@@ -4665,6 +5544,18 @@ extension PropertyItemQuerySortThenBy
     });
   }
 
+  QueryBuilder<PropertyItem, PropertyItem, QAfterSortBy> thenByObsField() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'obsField', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterSortBy> thenByObsFieldDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'obsField', Sort.desc);
+    });
+  }
+
   QueryBuilder<PropertyItem, PropertyItem, QAfterSortBy> thenByReferenceLat() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'referenceLat', Sort.asc);
@@ -4702,10 +5593,40 @@ extension PropertyItemQuerySortThenBy
       return query.addSortBy(r'state', Sort.desc);
     });
   }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterSortBy> thenByStatus() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'status', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterSortBy> thenByStatusDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'status', Sort.desc);
+    });
+  }
 }
 
 extension PropertyItemQueryWhereDistinct
     on QueryBuilder<PropertyItem, PropertyItem, QDistinct> {
+  QueryBuilder<PropertyItem, PropertyItem, QDistinct> distinctByAuditDate() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'auditDate');
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QDistinct> distinctByAuditLat() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'auditLat');
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QDistinct> distinctByAuditLong() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'auditLong');
+    });
+  }
+
   QueryBuilder<PropertyItem, PropertyItem, QDistinct> distinctByCity(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -4734,6 +5655,19 @@ extension PropertyItemQueryWhereDistinct
     });
   }
 
+  QueryBuilder<PropertyItem, PropertyItem, QDistinct> distinctByObsField(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'obsField', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QDistinct> distinctByPhotoPaths() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'photoPaths');
+    });
+  }
+
   QueryBuilder<PropertyItem, PropertyItem, QDistinct> distinctByReferenceLat() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'referenceLat');
@@ -4753,6 +5687,12 @@ extension PropertyItemQueryWhereDistinct
       return query.addDistinctBy(r'state', caseSensitive: caseSensitive);
     });
   }
+
+  QueryBuilder<PropertyItem, PropertyItem, QDistinct> distinctByStatus() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'status');
+    });
+  }
 }
 
 extension PropertyItemQueryProperty
@@ -4760,6 +5700,24 @@ extension PropertyItemQueryProperty
   QueryBuilder<PropertyItem, int, QQueryOperations> idProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'id');
+    });
+  }
+
+  QueryBuilder<PropertyItem, DateTime?, QQueryOperations> auditDateProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'auditDate');
+    });
+  }
+
+  QueryBuilder<PropertyItem, double?, QQueryOperations> auditLatProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'auditLat');
+    });
+  }
+
+  QueryBuilder<PropertyItem, double?, QQueryOperations> auditLongProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'auditLong');
     });
   }
 
@@ -4788,6 +5746,19 @@ extension PropertyItemQueryProperty
     });
   }
 
+  QueryBuilder<PropertyItem, String?, QQueryOperations> obsFieldProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'obsField');
+    });
+  }
+
+  QueryBuilder<PropertyItem, List<String>?, QQueryOperations>
+      photoPathsProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'photoPaths');
+    });
+  }
+
   QueryBuilder<PropertyItem, double?, QQueryOperations> referenceLatProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'referenceLat');
@@ -4804,6 +5775,12 @@ extension PropertyItemQueryProperty
   QueryBuilder<PropertyItem, String?, QQueryOperations> stateProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'state');
+    });
+  }
+
+  QueryBuilder<PropertyItem, AuditStatus, QQueryOperations> statusProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'status');
     });
   }
 }

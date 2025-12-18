@@ -38,6 +38,7 @@ dependencies:
   # --- Exportação ---
   docx_template: # <--- Deixei sem versão propositalmente
   share_plus:    # <--- Deixei sem versão propositalmente
+  gal: ^2.3.2
 
 dev_dependencies:
   flutter_test:

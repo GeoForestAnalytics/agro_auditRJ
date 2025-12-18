@@ -2,9 +2,11 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:image/image.dart' as img; // A lib de processamento
+import 'package:image/image.dart' as img; 
 import 'package:path_provider/path_provider.dart';
 import 'package:intl/intl.dart';
+import 'package:permission_handler/permission_handler.dart'; 
+import 'package:gal/gal.dart'; 
 
 class CameraCaptureScreen extends StatefulWidget {
   final String assetName;
@@ -18,83 +20,161 @@ class CameraCaptureScreen extends StatefulWidget {
 class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
   CameraController? _controller;
   bool _isProcessing = false;
+  String _statusMessage = "";
 
   @override
   void initState() {
     super.initState();
-    _initCamera();
+    _initCameraAndPermissions();
   }
 
-  Future<void> _initCamera() async {
-    final cameras = await availableCameras();
-    _controller = CameraController(cameras.first, ResolutionPreset.medium);
-    await _controller!.initialize();
-    setState(() {});
+  // Função para remover acentos (A lib de imagem não aceita acentos)
+  String _removeAcentos(String str) {
+    var comAcento = 'ÀÁÂÃÄÅàáâãäåÒÓÔÕÕÖØòóôõöøÈÉÊËèéêëðÇçÐÌÍÎÏìíîïÙÚÛÜùúûüÑñŠšŸÿýŽž';
+    var semAcento = 'AAAAAAaaaaaaOOOOOOOooooooEEEEeeeeeCcDIIIIiiiiUUUUuuuuNnSsYyyZz';
+    for (int i = 0; i < comAcento.length; i++) {
+      str = str.replaceAll(comAcento[i], semAcento[i]);
+    }
+    return str;
+  }
+
+  Future<void> _initCameraAndPermissions() async {
+    // Pede permissões
+    Map<Permission, PermissionStatus> statuses = await [
+      Permission.camera,
+      Permission.location,
+    ].request();
+
+    if (statuses[Permission.camera] != PermissionStatus.granted) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Permissão de câmera negada."))
+        );
+        Navigator.pop(context);
+      }
+      return;
+    }
+
+    try {
+      final cameras = await availableCameras();
+      if (cameras.isEmpty) return;
+      
+      final firstCamera = cameras.firstWhere(
+        (camera) => camera.lensDirection == CameraLensDirection.back,
+        orElse: () => cameras.first,
+      );
+
+      _controller = CameraController(
+        firstCamera, 
+        ResolutionPreset.medium, 
+        enableAudio: false,
+      );
+
+      await _controller!.initialize();
+      if (mounted) setState(() {});
+    } catch (e) {
+      debugPrint("Erro Câmera: $e");
+    }
   }
 
   Future<void> _takePicture() async {
     if (_controller == null || !_controller!.value.isInitialized) return;
+    if (_isProcessing) return;
 
     try {
-      setState(() => _isProcessing = true);
+      setState(() {
+        _isProcessing = true;
+        _statusMessage = "Capturando...";
+      });
 
-      // 1. Captura GPS
-      Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high
-      );
+      Position? position;
+      try {
+        bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+        if (serviceEnabled) {
+           // Tenta pegar GPS por 3 segundos
+           position = await Geolocator.getCurrentPosition(
+            desiredAccuracy: LocationAccuracy.medium,
+            timeLimit: const Duration(seconds: 3), 
+          );
+        }
+      } catch (e) {
+        debugPrint("GPS: $e");
+      }
 
-      // 2. Tira a foto
+      double lat = position?.latitude ?? 0.0;
+      double long = position?.longitude ?? 0.0;
+
+      setState(() => _statusMessage = "Processando...");
+
       XFile rawPhoto = await _controller!.takePicture();
-      
-      // 3. Processamento de Imagem (O OVERLAY)
       final bytes = await File(rawPhoto.path).readAsBytes();
       img.Image? image = img.decodeImage(bytes);
 
       if (image != null) {
-        // Redimensionar para não travar a memória (Full HD é suficiente)
-        image = img.copyResize(image, width: 1280);
+        // Redimensiona se for muito grande (HD)
+        if (image.width > 1280) {
+          image = img.copyResize(image, width: 1280);
+        }
 
-        String timestamp = DateFormat('dd/MM/yyyy HH:mm:ss').format(DateTime.now());
-        String infoText = "${widget.assetName}\nLAT: ${position.latitude.toStringAsFixed(6)}\nLONG: ${position.longitude.toStringAsFixed(6)}\nDATA: $timestamp";
+        String timestamp = DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now());
+        
+        // Limpa o texto (Remove acentos)
+        String nomeLimpo = _removeAcentos(widget.assetName);
+        
+        // Texto formatado
+        String infoText = "$nomeLimpo\nLat: ${lat.toStringAsFixed(5)}  Long: ${long.toStringAsFixed(5)}\nData: $timestamp";
 
-        // Desenhar um retângulo semi-transparente no rodapé
+        // Tarja preta
         img.fillRect(
           image,
-          x1: 0, y1: image.height - 120,
+          x1: 0, y1: image.height - 100,
           x2: image.width, y2: image.height,
-          color: img.ColorRgba8(0, 0, 0, 150),
+          color: img.ColorRgba8(0, 0, 0, 180),
         );
 
-        // Escrever o texto (Usando fonte padrão da lib)
+        // Texto (Fonte MENOR: arial24)
         img.drawString(
           image,
           infoText,
           font: img.arial24,
           x: 20,
-          y: image.height - 100,
+          y: image.height - 90,
           color: img.ColorRgba8(255, 255, 255, 255),
         );
 
-        // 4. Salvar a foto final
+        // Salvar interno
         final directory = await getApplicationDocumentsDirectory();
         final String fileName = 'audit_${DateTime.now().millisecondsSinceEpoch}.jpg';
         final String filePath = '${directory.path}/$fileName';
         
         File(filePath).writeAsBytesSync(img.encodeJpg(image, quality: 85));
 
-        // Retornar o caminho da foto e as coordenadas para a tela anterior
+        // Salvar na Galeria
+        try {
+          if (await Gal.hasAccess() || await Gal.requestAccess()) {
+            await Gal.putImage(filePath, album: 'Agro Audit');
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Salvo na Galeria! 📸"), duration: Duration(seconds: 1))
+              );
+            }
+          }
+        } catch (e) {
+          debugPrint("Galeria erro: $e");
+        }
+
         if (mounted) {
           Navigator.pop(context, {
             'path': filePath,
-            'lat': position.latitude,
-            'long': position.longitude,
+            'lat': lat,
+            'long': long,
           });
         }
       }
     } catch (e) {
-      print("Erro na captura: $e");
+      debugPrint("Erro fatal: $e");
     } finally {
-      setState(() => _isProcessing = false);
+      if (mounted) setState(() => _isProcessing = false);
     }
   }
 
@@ -107,33 +187,17 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
   @override
   Widget build(BuildContext context) {
     if (_controller == null || !_controller!.value.isInitialized) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(backgroundColor: Colors.black, body: Center(child: CircularProgressIndicator()));
     }
-
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: AppBar(title: const Text("Vistoria")),
-      body: Stack(
-        children: [
-          CameraPreview(_controller!),
-          if (_isProcessing)
-            Container(
-              color: Colors.black54,
-              child: const Center(child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  CircularProgressIndicator(color: Colors.white),
-                  SizedBox(height: 10),
-                  Text("Processando Imagem GPS...", style: TextStyle(color: Colors.white)),
-                ],
-              )),
-            ),
-        ],
-      ),
+      appBar: AppBar(title: const Text("Foto"), backgroundColor: Colors.black, foregroundColor: Colors.white),
+      body: Center(child: CameraPreview(_controller!)),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: FloatingActionButton.large(
+        backgroundColor: _isProcessing ? Colors.grey : Colors.white,
         onPressed: _isProcessing ? null : _takePicture,
-        child: const Icon(Icons.camera_alt),
+        child: const Icon(Icons.camera_alt, color: Colors.black, size: 40),
       ),
     );
   }

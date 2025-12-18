@@ -45,13 +45,23 @@ class PropertyItem {
   late String name;
   late String matricula;
   late String city;
-  String? state; // Adicionado para bater com seu Excel
-
-  // Podem armazenar tanto Graus Decimais quanto UTM (como double)
+  String? state;
   double? referenceLat; 
   double? referenceLong;
 
   List<String>? dronePhotoPaths;
+
+  @Enumerated(EnumType.ordinal)
+  AuditStatus status = AuditStatus.pending;
+
+  String? obsField;
+  DateTime? auditDate;
+  List<String>? photoPaths;
+  
+  // --- NOVOS CAMPOS PARA O GPS DA VISTORIA ---
+  double? auditLat;  // <--- NOVO
+  double? auditLong; // <--- NOVO
+  // ------------------------------------------
 
   @Backlink(to: 'properties')
   final project = IsarLink<Project>();

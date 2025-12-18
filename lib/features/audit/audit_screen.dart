@@ -8,7 +8,9 @@ import 'package:agro_audit_rj/models/audit_model.dart';
 import 'package:agro_audit_rj/data/local_db.dart';
 import 'package:agro_audit_rj/features/audit/camera_capture_screen.dart';
 import 'package:agro_audit_rj/features/audit/asset_detail_screen.dart';
-import 'package:agro_audit_rj/core/services/report_service.dart'; // Import vital para o Word
+import 'package:agro_audit_rj/features/audit/property_detail_screen.dart'; // Tela de Detalhes da Fazenda
+import 'package:agro_audit_rj/core/services/report_service.dart'; 
+import 'package:agro_audit_rj/core/services/drone_service.dart'; // Serviço do Drone
 
 class AuditScreen extends StatefulWidget {
   final Project project;
@@ -34,20 +36,29 @@ class _AuditScreenState extends State<AuditScreen> with SingleTickerProviderStat
     super.dispose();
   }
 
-  // === FUNÇÃO: GERAR RELATÓRIO WORD ===
+  // === FUNÇÃO: GERAR RELATÓRIO COMPLETO (BENS + FAZENDAS) ===
   Future<void> _exportToWord() async {
     setState(() => _isLoading = true);
     try {
-      // Busca os itens atualizados no banco para o relatório
+      // 1. Busca Bens
       final assets = await LocalDB.instance.assetItems
           .filter()
           .project((q) => q.idEqualTo(widget.project.id))
           .findAll();
       
-      // Chama o serviço que configuramos com o template.docx
-      await ReportService.generateProjectReport(widget.project, assets);
+      // 2. Busca Fazendas
+      final properties = await LocalDB.instance.propertyItems
+          .filter()
+          .project((q) => q.idEqualTo(widget.project.id))
+          .findAll();
+      
+      // 3. Gera Relatório Unificado
+      await ReportService.generateProjectReport(widget.project, assets, properties);
     } catch (e) {
       debugPrint("Erro ao exportar: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Erro: $e")));
+      }
     } finally {
       setState(() => _isLoading = false);
     }
@@ -71,7 +82,6 @@ class _AuditScreenState extends State<AuditScreen> with SingleTickerProviderStat
         await isar.writeTxn(() async {
           final sheet = excel.tables[excel.tables.keys.first];
           if (sheet != null) {
-            // Pula o cabeçalho (i=1)
             for (var i = 1; i < sheet.rows.length; i++) {
               var row = sheet.rows[i];
               if (row.isEmpty) continue;
@@ -81,17 +91,14 @@ class _AuditScreenState extends State<AuditScreen> with SingleTickerProviderStat
                 ..serialNumber = (row.length > 1 ? row[1]?.value?.toString() : '') ?? ''
                 ..plate = (row.length > 2 ? row[2]?.value?.toString() : '') ?? ''
                 ..category = (row.length > 3 ? row[3]?.value?.toString() : '') ?? 'Geral'
-                ..municipality = (row.length > 4 ? row[4]?.value?.toString() : '') ?? '' // Coluna E
-                ..state = (row.length > 5 ? row[5]?.value?.toString() : '') ?? ''        // Coluna F
+                ..municipality = (row.length > 4 ? row[4]?.value?.toString() : '') ?? ''
+                ..state = (row.length > 5 ? row[5]?.value?.toString() : '') ?? ''
                 ..status = AuditStatus.pending;
 
               await isar.assetItems.put(newItem);
               
-              // Vincula o item ao projeto atual (Backlink)
               newItem.project.value = widget.project;
               await newItem.project.save();
-              
-              // Adiciona na lista de links do projeto
               widget.project.assets.add(newItem);
             }
             await widget.project.assets.save();
@@ -131,9 +138,9 @@ class _AuditScreenState extends State<AuditScreen> with SingleTickerProviderStat
                 ..name = row[0]?.value?.toString() ?? 'Fazenda sem Nome'
                 ..matricula = (row.length > 1 ? row[1]?.value?.toString() : '') ?? ''
                 ..city = (row.length > 2 ? row[2]?.value?.toString() : '') ?? ''
-                ..state = (row.length > 3 ? row[3]?.value?.toString() : '') ?? '' // Coluna D
-                ..referenceLat = double.tryParse(row.length > 4 ? row[4]?.value?.toString() ?? '' : '') // Coluna E
-                ..referenceLong = double.tryParse(row.length > 5 ? row[5]?.value?.toString() ?? '' : ''); // Coluna F
+                ..state = (row.length > 3 ? row[3]?.value?.toString() : '') ?? ''
+                ..referenceLat = double.tryParse(row.length > 4 ? row[4]?.value?.toString() ?? '' : '')
+                ..referenceLong = double.tryParse(row.length > 5 ? row[5]?.value?.toString() ?? '' : '');
 
               await isar.propertyItems.put(newProp);
               newProp.project.value = widget.project;
@@ -176,13 +183,11 @@ class _AuditScreenState extends State<AuditScreen> with SingleTickerProviderStat
           if (_isLoading)
             const Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator(color: Colors.white))
           else ...[
-            // BOTÃO 1: EXPORTAR WORD
             IconButton(
               icon: const Icon(Icons.description), 
               onPressed: _exportToWord,
-              tooltip: "Gerar Relatório Word",
+              tooltip: "Gerar Relatório",
             ),
-            // BOTÃO 2: IMPORTAR (MENU SUSPENSO)
             IconButton(
               icon: const Icon(Icons.upload_file),
               onPressed: () {
@@ -219,9 +224,7 @@ class _AuditScreenState extends State<AuditScreen> with SingleTickerProviderStat
       body: TabBarView(
         controller: _tabController,
         children: [
-          // ABA 1: LISTA DE BENS
           AssetsListTab(project: widget.project, onImport: _importAssetsExcel),
-          // ABA 2: LISTA DE FAZENDAS
           PropertiesListTab(project: widget.project, onImport: _importPropertiesExcel),
         ],
       ),
@@ -229,7 +232,7 @@ class _AuditScreenState extends State<AuditScreen> with SingleTickerProviderStat
   }
 }
 
-// === WIDGET: ABA DE BENS ===
+// === ABA DE BENS (MAQUINÁRIO) ===
 class AssetsListTab extends StatefulWidget {
   final Project project;
   final VoidCallback onImport;
@@ -241,7 +244,7 @@ class AssetsListTab extends StatefulWidget {
 
 class _AssetsListTabState extends State<AssetsListTab> with AutomaticKeepAliveClientMixin {
   @override
-  bool get wantKeepAlive => true; // Impede o erro de "Stream already listened"
+  bool get wantKeepAlive => true;
 
   @override
   Widget build(BuildContext context) {
@@ -275,15 +278,40 @@ class _AssetsListTabState extends State<AssetsListTab> with AutomaticKeepAliveCl
           separatorBuilder: (_, __) => const Divider(),
           itemBuilder: (context, index) {
             final item = assets[index];
+            
+            Color corStatus;
+            IconData iconeStatus;
+
+            switch (item.status) {
+              case AuditStatus.found:
+                corStatus = Colors.green;
+                iconeStatus = Icons.check;
+                break;
+              case AuditStatus.notFound:
+                corStatus = Colors.orange;
+                iconeStatus = Icons.search_off;
+                break;
+              case AuditStatus.seized:
+                corStatus = Colors.red;
+                iconeStatus = Icons.gavel;
+                break;
+              case AuditStatus.pending:
+              default:
+                corStatus = Colors.grey;
+                iconeStatus = Icons.priority_high;
+            }
+
             return ListTile(
               leading: CircleAvatar(
-                backgroundColor: item.status == AuditStatus.found ? Colors.green : Colors.grey,
-                child: Icon(item.status == AuditStatus.found ? Icons.check : Icons.priority_high, color: Colors.white, size: 16),
+                backgroundColor: corStatus,
+                child: Icon(iconeStatus, color: Colors.white, size: 18),
               ),
               title: Text(item.description, style: const TextStyle(fontWeight: FontWeight.bold)),
               subtitle: Text('Loc: ${item.municipality} - ${item.state}'),
+              
+              // --- CORRIGIDO: Botão de Câmera dos BENS ---
               trailing: IconButton(
-                icon: const Icon(Icons.camera_alt_outlined),
+                icon: Icon(Icons.camera_alt_outlined, color: corStatus),
                 onPressed: () async {
                   final result = await Navigator.push(
                     context, 
@@ -292,7 +320,9 @@ class _AssetsListTabState extends State<AssetsListTab> with AutomaticKeepAliveCl
                   if (result != null && result is Map) {
                     await LocalDB.instance.writeTxn(() async {
                       item.status = AuditStatus.found;
-                      item.photoPaths = [result['path']];
+                      List<String> currentPhotos = item.photoPaths?.toList() ?? [];
+                      currentPhotos.add(result['path']);
+                      item.photoPaths = currentPhotos;
                       item.auditLat = result['lat'];
                       item.auditLong = result['long'];
                       item.auditDate = DateTime.now();
@@ -310,7 +340,7 @@ class _AssetsListTabState extends State<AssetsListTab> with AutomaticKeepAliveCl
   }
 }
 
-// === WIDGET: ABA DE FAZENDAS ===
+// === ABA DE FAZENDAS (PROPRIEDADES) ===
 class PropertiesListTab extends StatefulWidget {
   final Project project;
   final VoidCallback onImport;
@@ -350,19 +380,91 @@ class _PropertiesListTabState extends State<PropertiesListTab> with AutomaticKee
           );
         }
 
-        return ListView.separated(
-          padding: const EdgeInsets.all(12),
-          itemCount: props.length,
-          separatorBuilder: (_, __) => const Divider(),
-          itemBuilder: (context, index) {
-            final prop = props[index];
-            return ListTile(
-              leading: const CircleAvatar(backgroundColor: Color(0xFF2E7D32), child: Icon(Icons.map, color: Colors.white, size: 16)),
-              title: Text(prop.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-              subtitle: Text('${prop.matricula} | ${prop.city} - ${prop.state}'),
-              onTap: () => debugPrint("Detalhes da fazenda"),
-            );
-          },
+        return Column(
+          children: [
+            // --- BOTÃO DO DRONE ---
+            Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.flight_takeoff),
+                  label: const Text("Processar Fotos de Drone (Galeria)"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue[800],
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  onPressed: () {
+                    DroneService().processDronePhotos(context, widget.project);
+                  },
+                ),
+              ),
+            ),
+
+            // --- LISTA ---
+            Expanded(
+              child: ListView.separated(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                itemCount: props.length,
+                separatorBuilder: (_, __) => const Divider(),
+                itemBuilder: (context, index) {
+                  final prop = props[index];
+                  
+                  Color corStatus;
+                  IconData iconeStatus;
+
+                  switch (prop.status) {
+                    case AuditStatus.found:
+                      corStatus = Colors.green;
+                      iconeStatus = Icons.check;
+                      break;
+                    case AuditStatus.notFound:
+                      corStatus = Colors.orange;
+                      iconeStatus = Icons.search_off;
+                      break;
+                    default:
+                      corStatus = Colors.grey;
+                      iconeStatus = Icons.landscape;
+                  }
+
+                  return ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: corStatus,
+                      child: Icon(iconeStatus, color: Colors.white, size: 18),
+                    ),
+                    title: Text(prop.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                    subtitle: Text('${prop.matricula} | ${prop.city}'),
+                    
+                    // --- CORRIGIDO: Botão de Câmera das FAZENDAS ---
+                    trailing: IconButton(
+                      icon: Icon(Icons.camera_alt_outlined, color: corStatus),
+                      onPressed: () async {
+                        final result = await Navigator.push(
+                          context, 
+                          MaterialPageRoute(builder: (context) => CameraCaptureScreen(assetName: prop.name))
+                        );
+                        
+                        if (result != null && result is Map) {
+                          await LocalDB.instance.writeTxn(() async {
+                            prop.status = AuditStatus.found;
+                            prop.photoPaths = [result['path']];
+                            prop.auditDate = DateTime.now();
+                            // Salvando GPS da vistoria
+                            prop.auditLat = result['lat'];
+                            prop.auditLong = result['long'];
+                            
+                            await LocalDB.instance.propertyItems.put(prop);
+                          });
+                        }
+                      },
+                    ),
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => PropertyDetailScreen(item: prop))),
+                  );
+                },
+              ),
+            ),
+          ],
         );
       },
     );
