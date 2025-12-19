@@ -1,15 +1,16 @@
+// lib/features/audit/audit_screen.dart
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:isar/isar.dart';
-import 'package:file_picker/file_picker.dart'; 
-import 'package:excel/excel.dart'; 
+import 'package:file_picker/file_picker.dart';
+import 'package:excel/excel.dart';
 import 'package:gap/gap.dart';
 import 'package:agro_audit_rj/models/audit_model.dart';
 import 'package:agro_audit_rj/data/local_db.dart';
 import 'package:agro_audit_rj/features/audit/camera_capture_screen.dart';
 import 'package:agro_audit_rj/features/audit/asset_detail_screen.dart';
 import 'package:agro_audit_rj/features/audit/property_detail_screen.dart'; // Tela de Detalhes da Fazenda
-import 'package:agro_audit_rj/core/services/report_service.dart'; 
+import 'package:agro_audit_rj/core/services/report_service.dart';
 import 'package:agro_audit_rj/core/services/drone_service.dart'; // Serviço do Drone
 
 class AuditScreen extends StatefulWidget {
@@ -20,9 +21,10 @@ class AuditScreen extends StatefulWidget {
   State<AuditScreen> createState() => _AuditScreenState();
 }
 
-class _AuditScreenState extends State<AuditScreen> with SingleTickerProviderStateMixin {
+class _AuditScreenState extends State<AuditScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  bool _isLoading = false; 
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -45,20 +47,18 @@ class _AuditScreenState extends State<AuditScreen> with SingleTickerProviderStat
           .filter()
           .project((q) => q.idEqualTo(widget.project.id))
           .findAll();
-      
-      // 2. Busca Fazendas
+
+      // 2. Busca Fazendas (ISSO FALTAVA NO SEU CÓDIGO)
       final properties = await LocalDB.instance.propertyItems
           .filter()
           .project((q) => q.idEqualTo(widget.project.id))
           .findAll();
-      
+
       // 3. Gera Relatório Unificado
-      await ReportService.generateProjectReport(widget.project, assets, properties);
+      await ReportService.generateProjectReport(
+          widget.project, assets, properties);
     } catch (e) {
       debugPrint("Erro ao exportar: $e");
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Erro: $e")));
-      }
     } finally {
       setState(() => _isLoading = false);
     }
@@ -67,10 +67,8 @@ class _AuditScreenState extends State<AuditScreen> with SingleTickerProviderStat
   // === FUNÇÃO: IMPORTAR BENS (COLUNAS A ATÉ F) ===
   Future<void> _importAssetsExcel() async {
     try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.custom, 
-        allowedExtensions: ['xlsx']
-      );
+      FilePickerResult? result = await FilePicker.platform
+          .pickFiles(type: FileType.custom, allowedExtensions: ['xlsx']);
 
       if (result != null) {
         setState(() => _isLoading = true);
@@ -88,15 +86,20 @@ class _AuditScreenState extends State<AuditScreen> with SingleTickerProviderStat
 
               final newItem = AssetItem()
                 ..description = row[0]?.value?.toString() ?? 'Sem Descrição'
-                ..serialNumber = (row.length > 1 ? row[1]?.value?.toString() : '') ?? ''
-                ..plate = (row.length > 2 ? row[2]?.value?.toString() : '') ?? ''
-                ..category = (row.length > 3 ? row[3]?.value?.toString() : '') ?? 'Geral'
-                ..municipality = (row.length > 4 ? row[4]?.value?.toString() : '') ?? ''
-                ..state = (row.length > 5 ? row[5]?.value?.toString() : '') ?? ''
+                ..serialNumber =
+                    (row.length > 1 ? row[1]?.value?.toString() : '') ?? ''
+                ..plate =
+                    (row.length > 2 ? row[2]?.value?.toString() : '') ?? ''
+                ..category =
+                    (row.length > 3 ? row[3]?.value?.toString() : '') ?? 'Geral'
+                ..municipality =
+                    (row.length > 4 ? row[4]?.value?.toString() : '') ?? ''
+                ..state =
+                    (row.length > 5 ? row[5]?.value?.toString() : '') ?? ''
                 ..status = AuditStatus.pending;
 
               await isar.assetItems.put(newItem);
-              
+
               newItem.project.value = widget.project;
               await newItem.project.save();
               widget.project.assets.add(newItem);
@@ -106,7 +109,7 @@ class _AuditScreenState extends State<AuditScreen> with SingleTickerProviderStat
         });
         setState(() => _isLoading = false);
       }
-    } catch (e) { 
+    } catch (e) {
       setState(() => _isLoading = false);
       debugPrint("Erro na importação de bens: $e");
     }
@@ -115,10 +118,8 @@ class _AuditScreenState extends State<AuditScreen> with SingleTickerProviderStat
   // === FUNÇÃO: IMPORTAR FAZENDAS (COLUNAS A ATÉ F) ===
   Future<void> _importPropertiesExcel() async {
     try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.custom, 
-        allowedExtensions: ['xlsx']
-      );
+      FilePickerResult? result = await FilePicker.platform
+          .pickFiles(type: FileType.custom, allowedExtensions: ['xlsx']);
 
       if (result != null) {
         setState(() => _isLoading = true);
@@ -136,11 +137,15 @@ class _AuditScreenState extends State<AuditScreen> with SingleTickerProviderStat
 
               final newProp = PropertyItem()
                 ..name = row[0]?.value?.toString() ?? 'Fazenda sem Nome'
-                ..matricula = (row.length > 1 ? row[1]?.value?.toString() : '') ?? ''
+                ..matricula =
+                    (row.length > 1 ? row[1]?.value?.toString() : '') ?? ''
                 ..city = (row.length > 2 ? row[2]?.value?.toString() : '') ?? ''
-                ..state = (row.length > 3 ? row[3]?.value?.toString() : '') ?? ''
-                ..referenceLat = double.tryParse(row.length > 4 ? row[4]?.value?.toString() ?? '' : '')
-                ..referenceLong = double.tryParse(row.length > 5 ? row[5]?.value?.toString() ?? '' : '');
+                ..state =
+                    (row.length > 3 ? row[3]?.value?.toString() : '') ?? ''
+                ..referenceLat = double.tryParse(
+                    row.length > 4 ? row[4]?.value?.toString() ?? '' : '')
+                ..referenceLong = double.tryParse(
+                    row.length > 5 ? row[5]?.value?.toString() ?? '' : '');
 
               await isar.propertyItems.put(newProp);
               newProp.project.value = widget.project;
@@ -152,7 +157,7 @@ class _AuditScreenState extends State<AuditScreen> with SingleTickerProviderStat
         });
         setState(() => _isLoading = false);
       }
-    } catch (e) { 
+    } catch (e) {
       setState(() => _isLoading = false);
       debugPrint("Erro na importação de fazendas: $e");
     }
@@ -165,8 +170,11 @@ class _AuditScreenState extends State<AuditScreen> with SingleTickerProviderStat
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(widget.project.name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const Text('Auditoria em andamento', style: TextStyle(fontSize: 12)),
+            Text(widget.project.name,
+                style:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const Text('Auditoria em andamento',
+                style: TextStyle(fontSize: 12)),
           ],
         ),
         bottom: TabBar(
@@ -181,10 +189,12 @@ class _AuditScreenState extends State<AuditScreen> with SingleTickerProviderStat
         ),
         actions: [
           if (_isLoading)
-            const Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator(color: Colors.white))
+            const Padding(
+                padding: EdgeInsets.all(16),
+                child: CircularProgressIndicator(color: Colors.white))
           else ...[
             IconButton(
-              icon: const Icon(Icons.description), 
+              icon: const Icon(Icons.description),
               onPressed: _exportToWord,
               tooltip: "Gerar Relatório",
             ),
@@ -198,16 +208,26 @@ class _AuditScreenState extends State<AuditScreen> with SingleTickerProviderStat
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         ListTile(
-                          leading: const Icon(Icons.agriculture, color: Colors.green),
+                          leading: const Icon(Icons.agriculture,
+                              color: Colors.green),
                           title: const Text("Importar Lista de Bens"),
-                          subtitle: const Text("Colunas A-F: Desc, Série, Placa, Cat, Mun, UF"),
-                          onTap: () { Navigator.pop(context); _importAssetsExcel(); },
+                          subtitle: const Text(
+                              "Colunas A-F: Desc, Série, Placa, Cat, Mun, UF"),
+                          onTap: () {
+                            Navigator.pop(context);
+                            _importAssetsExcel();
+                          },
                         ),
                         ListTile(
-                          leading: const Icon(Icons.landscape, color: Colors.brown),
+                          leading:
+                              const Icon(Icons.landscape, color: Colors.brown),
                           title: const Text("Importar Lista de Fazendas"),
-                          subtitle: const Text("Colunas A-F: Nome, Mat, Cid, UF, Lat, Long"),
-                          onTap: () { Navigator.pop(context); _importPropertiesExcel(); },
+                          subtitle: const Text(
+                              "Colunas A-F: Nome, Mat, Cid, UF, Lat, Long"),
+                          onTap: () {
+                            Navigator.pop(context);
+                            _importPropertiesExcel();
+                          },
                         ),
                         const Gap(10),
                       ],
@@ -225,7 +245,8 @@ class _AuditScreenState extends State<AuditScreen> with SingleTickerProviderStat
         controller: _tabController,
         children: [
           AssetsListTab(project: widget.project, onImport: _importAssetsExcel),
-          PropertiesListTab(project: widget.project, onImport: _importPropertiesExcel),
+          PropertiesListTab(
+              project: widget.project, onImport: _importPropertiesExcel),
         ],
       ),
     );
@@ -236,13 +257,15 @@ class _AuditScreenState extends State<AuditScreen> with SingleTickerProviderStat
 class AssetsListTab extends StatefulWidget {
   final Project project;
   final VoidCallback onImport;
-  const AssetsListTab({super.key, required this.project, required this.onImport});
+  const AssetsListTab(
+      {super.key, required this.project, required this.onImport});
 
   @override
   State<AssetsListTab> createState() => _AssetsListTabState();
 }
 
-class _AssetsListTabState extends State<AssetsListTab> with AutomaticKeepAliveClientMixin {
+class _AssetsListTabState extends State<AssetsListTab>
+    with AutomaticKeepAliveClientMixin {
   @override
   bool get wantKeepAlive => true;
 
@@ -255,21 +278,22 @@ class _AssetsListTabState extends State<AssetsListTab> with AutomaticKeepAliveCl
           .project((q) => q.idEqualTo(widget.project.id))
           .watch(fireImmediately: true),
       builder: (context, snapshot) {
-        if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+        if (!snapshot.hasData)
+          return const Center(child: CircularProgressIndicator());
         final assets = snapshot.data!;
-        
+
         if (assets.isEmpty) {
           return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center, 
-              children: [
+              child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
                 const Icon(Icons.list_alt, size: 60, color: Colors.grey),
                 const Gap(16),
                 const Text("Nenhum bem importado."),
-                ElevatedButton(onPressed: widget.onImport, child: const Text("Importar Excel"))
-              ]
-            )
-          );
+                ElevatedButton(
+                    onPressed: widget.onImport,
+                    child: const Text("Importar Excel"))
+              ]));
         }
 
         return ListView.separated(
@@ -278,7 +302,7 @@ class _AssetsListTabState extends State<AssetsListTab> with AutomaticKeepAliveCl
           separatorBuilder: (_, __) => const Divider(),
           itemBuilder: (context, index) {
             final item = assets[index];
-            
+
             Color corStatus;
             IconData iconeStatus;
 
@@ -306,21 +330,24 @@ class _AssetsListTabState extends State<AssetsListTab> with AutomaticKeepAliveCl
                 backgroundColor: corStatus,
                 child: Icon(iconeStatus, color: Colors.white, size: 18),
               ),
-              title: Text(item.description, style: const TextStyle(fontWeight: FontWeight.bold)),
+              title: Text(item.description,
+                  style: const TextStyle(fontWeight: FontWeight.bold)),
               subtitle: Text('Loc: ${item.municipality} - ${item.state}'),
-              
+
               // --- CORRIGIDO: Botão de Câmera dos BENS ---
               trailing: IconButton(
                 icon: Icon(Icons.camera_alt_outlined, color: corStatus),
                 onPressed: () async {
                   final result = await Navigator.push(
-                    context, 
-                    MaterialPageRoute(builder: (context) => CameraCaptureScreen(assetName: item.description))
-                  );
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => CameraCaptureScreen(
+                              assetName: item.description)));
                   if (result != null && result is Map) {
                     await LocalDB.instance.writeTxn(() async {
                       item.status = AuditStatus.found;
-                      List<String> currentPhotos = item.photoPaths?.toList() ?? [];
+                      List<String> currentPhotos =
+                          item.photoPaths?.toList() ?? [];
                       currentPhotos.add(result['path']);
                       item.photoPaths = currentPhotos;
                       item.auditLat = result['lat'];
@@ -331,7 +358,10 @@ class _AssetsListTabState extends State<AssetsListTab> with AutomaticKeepAliveCl
                   }
                 },
               ),
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => AssetDetailScreen(item: item))),
+              onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => AssetDetailScreen(item: item))),
             );
           },
         );
@@ -344,13 +374,15 @@ class _AssetsListTabState extends State<AssetsListTab> with AutomaticKeepAliveCl
 class PropertiesListTab extends StatefulWidget {
   final Project project;
   final VoidCallback onImport;
-  const PropertiesListTab({super.key, required this.project, required this.onImport});
+  const PropertiesListTab(
+      {super.key, required this.project, required this.onImport});
 
   @override
   State<PropertiesListTab> createState() => _PropertiesListTabState();
 }
 
-class _PropertiesListTabState extends State<PropertiesListTab> with AutomaticKeepAliveClientMixin {
+class _PropertiesListTabState extends State<PropertiesListTab>
+    with AutomaticKeepAliveClientMixin {
   @override
   bool get wantKeepAlive => true;
 
@@ -363,21 +395,22 @@ class _PropertiesListTabState extends State<PropertiesListTab> with AutomaticKee
           .project((q) => q.idEqualTo(widget.project.id))
           .watch(fireImmediately: true),
       builder: (context, snapshot) {
-        if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+        if (!snapshot.hasData)
+          return const Center(child: CircularProgressIndicator());
         final props = snapshot.data!;
-        
+
         if (props.isEmpty) {
           return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center, 
-              children: [
+              child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
                 const Icon(Icons.landscape, size: 60, color: Colors.grey),
                 const Gap(16),
                 const Text("Nenhuma fazenda importada."),
-                ElevatedButton(onPressed: widget.onImport, child: const Text("Importar Excel"))
-              ]
-            )
-          );
+                ElevatedButton(
+                    onPressed: widget.onImport,
+                    child: const Text("Importar Excel"))
+              ]));
         }
 
         return Column(
@@ -410,7 +443,7 @@ class _PropertiesListTabState extends State<PropertiesListTab> with AutomaticKee
                 separatorBuilder: (_, __) => const Divider(),
                 itemBuilder: (context, index) {
                   final prop = props[index];
-                  
+
                   Color corStatus;
                   IconData iconeStatus;
 
@@ -433,18 +466,20 @@ class _PropertiesListTabState extends State<PropertiesListTab> with AutomaticKee
                       backgroundColor: corStatus,
                       child: Icon(iconeStatus, color: Colors.white, size: 18),
                     ),
-                    title: Text(prop.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                    title: Text(prop.name,
+                        style: const TextStyle(fontWeight: FontWeight.bold)),
                     subtitle: Text('${prop.matricula} | ${prop.city}'),
-                    
+
                     // --- CORRIGIDO: Botão de Câmera das FAZENDAS ---
                     trailing: IconButton(
                       icon: Icon(Icons.camera_alt_outlined, color: corStatus),
                       onPressed: () async {
                         final result = await Navigator.push(
-                          context, 
-                          MaterialPageRoute(builder: (context) => CameraCaptureScreen(assetName: prop.name))
-                        );
-                        
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) =>
+                                    CameraCaptureScreen(assetName: prop.name)));
+
                         if (result != null && result is Map) {
                           await LocalDB.instance.writeTxn(() async {
                             prop.status = AuditStatus.found;
@@ -453,13 +488,17 @@ class _PropertiesListTabState extends State<PropertiesListTab> with AutomaticKee
                             // Salvando GPS da vistoria
                             prop.auditLat = result['lat'];
                             prop.auditLong = result['long'];
-                            
+
                             await LocalDB.instance.propertyItems.put(prop);
                           });
                         }
                       },
                     ),
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => PropertyDetailScreen(item: prop))),
+                    onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) =>
+                                PropertyDetailScreen(item: prop))),
                   );
                 },
               ),
