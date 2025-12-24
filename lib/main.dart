@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart'; // Import necessário
 import 'package:agro_audit_rj/data/local_db.dart';
-import 'package:agro_audit_rj/features/home/home_screen.dart';
+import 'package:agro_audit_rj/features/home/main_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -34,7 +34,8 @@ class AgroAuditApp extends StatelessWidget {
           centerTitle: true,
         ),
       ),
-      home: const HomeScreen(), 
+      // TROQUE AQUI: Para habilitar o menu inferior
+      home: const MainScreen(), 
     );
   }
 }

@@ -1,22 +1,23 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart'; // Adicionado
 import 'package:agro_audit_rj/models/audit_model.dart';
-import 'package:agro_audit_rj/data/local_db.dart';
+import 'package:agro_audit_rj/data/providers/audit_providers.dart'; // Adicionado
 import 'package:agro_audit_rj/features/audit/camera_capture_screen.dart';
 import 'package:gap/gap.dart';
 
-class PropertyDetailScreen extends StatefulWidget {
+class PropertyDetailScreen extends ConsumerStatefulWidget { // Trocado para Consumer
   final PropertyItem item;
   const PropertyDetailScreen({super.key, required this.item});
 
   @override
-  State<PropertyDetailScreen> createState() => _PropertyDetailScreenState();
+  ConsumerState<PropertyDetailScreen> createState() => _PropertyDetailScreenState();
 }
 
-class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
+class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
   late TextEditingController _obsController;
   late AuditStatus _selectedStatus;
-  late List<String> _photos; // Fotos de CHÃO
+  late List<String> _photos;
 
   @override
   void initState() {
@@ -27,13 +28,13 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
   }
 
   Future<void> _saveChanges() async {
-    final isar = LocalDB.instance;
-    await isar.writeTxn(() async {
-      widget.item.status = _selectedStatus;
-      widget.item.obsField = _obsController.text;
-      widget.item.photoPaths = _photos;
-      await isar.propertyItems.put(widget.item);
-    });
+    widget.item.status = _selectedStatus;
+    widget.item.obsField = _obsController.text;
+    widget.item.photoPaths = _photos;
+    
+    // Usando o repositório para salvar (Padrão Riverpod)
+    await ref.read(auditRepositoryProvider).updateProperty(widget.item);
+    
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Fazenda Atualizada!")));
       Navigator.pop(context);
@@ -58,14 +59,13 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Detalhes da Propriedade"),
-        actions: [IconButton(icon: const Icon(Icons.check, color: Colors.white), onPressed: _saveChanges)],
+        actions: [IconButton(icon: const Icon(Icons.check), onPressed: _saveChanges)],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // --- GALERIA VISTORIA LOCAL ---
             const Text("Vistoria Local (Chão)", style: TextStyle(fontWeight: FontWeight.bold)),
             const Gap(10),
             SizedBox(
@@ -91,11 +91,9 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
                 },
               ),
             ),
-
-            // --- GALERIA DRONE (VISUALIZAÇÃO) ---
             if (widget.item.dronePhotoPaths != null && widget.item.dronePhotoPaths!.isNotEmpty) ...[
               const Gap(20),
-              const Text("Imagens de Drone (Vinculadas por GPS)", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
+              const Text("Imagens de Drone", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
               const Gap(10),
               SizedBox(
                 height: 100,
@@ -114,12 +112,11 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
                 ),
               ),
             ],
-
             const Gap(20),
             Text(widget.item.name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            
             const Gap(20),
             const Text("Observações Agrícolas", style: TextStyle(fontWeight: FontWeight.bold)),
+            const Gap(8),
             TextField(controller: _obsController, maxLines: 5, decoration: const InputDecoration(border: OutlineInputBorder())),
           ],
         ),
