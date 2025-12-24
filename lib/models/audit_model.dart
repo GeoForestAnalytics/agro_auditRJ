@@ -2,22 +2,10 @@ import 'package:isar/isar.dart';
 
 part 'audit_model.g.dart';
 
-// 1. Definições de finalidade para a "inteligência" do Hub (Nomes em PT-BR)
-enum FinalidadeBem { 
-  preparoSolo, 
-  plantio, 
-  colheita, 
-  logistica, 
-  manutencao, 
-  tratosCulturais, 
-  pecuaria 
-}
-
-enum NivelEssencialidade { 
-  maxima, 
-  media, 
-  minima 
-}
+// Finalidades para o HUB de inteligência
+enum FinalidadeBem { preparoSolo, plantio, colheita, logistica, manutencao, tratosCulturais, pecuaria }
+enum NivelEssencialidade { maxima, media, minima }
+enum AuditStatus { pendente, localizado, naoLocalizado, apreendido }
 
 @collection
 class Project {
@@ -45,16 +33,15 @@ class AssetItem {
   @Enumerated(EnumType.ordinal)
   AuditStatus status = AuditStatus.pendente;
 
-  // --- NOVOS CAMPOS PARA O HUB DE ESSENCIALIDADE (EM PORTUGUÊS) ---
+  // --- NOVOS CAMPOS PARA O HUB ---
   @Enumerated(EnumType.ordinal)
   FinalidadeBem finalidade = FinalidadeBem.logistica;
 
   @Enumerated(EnumType.ordinal)
   NivelEssencialidade nivelEssencialidade = NivelEssencialidade.maxima;
+  // -------------------------------
 
-  String? obsField; // Detalhes sobre o estado de conservação
-  // ----------------------------------------------------------------
-
+  String? obsField;
   DateTime? auditDate;
   List<String>? photoPaths;
   double? auditLat;
@@ -77,7 +64,7 @@ class PropertyItem {
 
   List<String>? dronePhotoPaths;
 
-  // Tipologia da Fazenda para o Hub (Sede, Produção, Logística, etc)
+  // Tipologia para essencialidade no HUB
   String tipologia = "Produção Ativa"; 
 
   @Enumerated(EnumType.ordinal)
@@ -93,5 +80,3 @@ class PropertyItem {
   @Backlink(to: 'properties')
   final project = IsarLink<Project>();
 }
-
-enum AuditStatus { pendente, localizado, naolocalizado, apreendido }

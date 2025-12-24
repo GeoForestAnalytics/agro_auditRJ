@@ -1141,13 +1141,13 @@ const _AssetItemnivelEssencialidadeValueEnumMap = {
 const _AssetItemstatusEnumValueMap = {
   'pendente': 0,
   'localizado': 1,
-  'naolocalizado': 2,
+  'naoLocalizado': 2,
   'apreendido': 3,
 };
 const _AssetItemstatusValueEnumMap = {
   0: AuditStatus.pendente,
   1: AuditStatus.localizado,
-  2: AuditStatus.naolocalizado,
+  2: AuditStatus.naoLocalizado,
   3: AuditStatus.apreendido,
 };
 
@@ -3731,13 +3731,13 @@ P _propertyItemDeserializeProp<P>(
 const _PropertyItemstatusEnumValueMap = {
   'pendente': 0,
   'localizado': 1,
-  'naolocalizado': 2,
+  'naoLocalizado': 2,
   'apreendido': 3,
 };
 const _PropertyItemstatusValueEnumMap = {
   0: AuditStatus.pendente,
   1: AuditStatus.localizado,
-  2: AuditStatus.naolocalizado,
+  2: AuditStatus.naoLocalizado,
   3: AuditStatus.apreendido,
 };
 
