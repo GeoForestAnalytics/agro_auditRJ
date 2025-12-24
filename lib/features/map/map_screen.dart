@@ -3,11 +3,10 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:agro_audit_rj/data/providers/audit_providers.dart';
 import 'package:agro_audit_rj/models/audit_model.dart';
-import 'package:agro_audit_rj/features/audit/asset_detail_screen.dart';
-import 'package:agro_audit_rj/features/audit/property_detail_screen.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class MapScreen extends ConsumerStatefulWidget {
-  final int? projectId; // Nulo = Mapa Geral | Com ID = Mapa do Projeto
+  final int? projectId; 
   const MapScreen({super.key, this.projectId});
 
   @override
@@ -18,15 +17,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   late GoogleMapController _mapController;
   final Set<Marker> _markers = {};
 
-  static const CameraPosition _kBrasil = CameraPosition(
-    target: LatLng(-15.7942, -47.8822),
-    zoom: 4,
-  );
-
   void _updateMarkers(List<AssetItem> assets, List<PropertyItem> properties) {
     _markers.clear();
 
-    // 1. PINOS DAS FAZENDAS (AZUL)
+    // 1. PINOS DE FAZENDAS (SEDE - AZUL)
     for (var prop in properties) {
       if (prop.referenceLat != null && prop.referenceLong != null) {
         _markers.add(
@@ -35,39 +29,39 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             position: LatLng(prop.referenceLat!, prop.referenceLong!),
             icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
             infoWindow: InfoWindow(
-              title: "🏠 ${prop.name}",
-              snippet: "Ver detalhes da propriedade",
-              onTap: () => Navigator.push(context, MaterialPageRoute(
-                builder: (_) => PropertyDetailScreen(item: prop)
-              )),
+              title: "Sede: ${prop.name}",
+              snippet: "Clique para navegar",
+              onTap: () => _launchGPS(prop.referenceLat!, prop.referenceLong!),
             ),
           ),
         );
       }
     }
 
-    // 2. PINOS DOS BENS ENCONTRADOS (VERDE / VERMELHO)
+    // 2. PINOS DE COLETA (LOCAL ONDE A FOTO FOI TIRADA - VERDE)
     for (var asset in assets) {
       if (asset.auditLat != null && asset.auditLong != null) {
         _markers.add(
           Marker(
             markerId: MarkerId('asset_${asset.id}'),
             position: LatLng(asset.auditLat!, asset.auditLong!),
-            icon: BitmapDescriptor.defaultMarkerWithHue(
-              asset.status == AuditStatus.found ? BitmapDescriptor.hueGreen : BitmapDescriptor.hueRed
-            ),
+            icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
             infoWindow: InfoWindow(
-              title: "🚜 ${asset.description}",
-              snippet: "Série: ${asset.serialNumber ?? 'N/A'}",
-              onTap: () => Navigator.push(context, MaterialPageRoute(
-                builder: (_) => AssetDetailScreen(item: asset)
-              )),
+              title: "Item: ${asset.description}",
+              snippet: "Status: ${asset.status.name.toUpperCase()}",
             ),
           ),
         );
       }
     }
-    setState(() {});
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _launchGPS(double lat, double long) async {
+    final url = 'https://www.google.com/maps/search/?api=1&query=$lat,$long';
+    if (await canLaunchUrl(Uri.parse(url))) {
+      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+    }
   }
 
   void _fitBounds() {
@@ -80,48 +74,38 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       if (m.position.longitude > maxLong) maxLong = m.position.longitude;
     }
     _mapController.animateCamera(CameraUpdate.newLatLngBounds(
-      LatLngBounds(southwest: LatLng(minLat, minLong), northeast: LatLng(maxLat, maxLong)), 
-      50
+      LatLngBounds(southwest: LatLng(minLat, minLong), northeast: LatLng(maxLat, maxLong)), 50
     ));
   }
 
   @override
   Widget build(BuildContext context) {
-    // Seleção de dados baseada no contexto (Geral vs Projeto)
     final assetsAsync = widget.projectId != null 
-      ? ref.watch(assetsStreamProvider(widget.projectId!))
-      : ref.watch(allAssetsStreamProvider);
+        ? ref.watch(assetsStreamProvider(widget.projectId!))
+        : ref.watch(allAssetsStreamProvider);
 
     final propsAsync = widget.projectId != null
-      ? ref.watch(propertiesStreamProvider(widget.projectId!))
-      : ref.watch(allPropertiesStreamProvider);
+        ? ref.watch(propertiesStreamProvider(widget.projectId!))
+        : ref.watch(allPropertiesStreamProvider);
 
-    // Monitora mudanças nos dados e atualiza os marcadores
     assetsAsync.whenData((assets) {
-      propsAsync.whenData((props) {
-        _updateMarkers(assets, props);
-      });
+      propsAsync.whenData((props) => _updateMarkers(assets, props));
     });
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.projectId != null ? "Navegação da Vistoria" : "Mapa Geral de Ativos"),
-        backgroundColor: const Color(0xFF2E7D32),
+        title: const Text("Gestão Georreferenciada"),
         actions: [
           IconButton(icon: const Icon(Icons.center_focus_strong), onPressed: _fitBounds),
         ],
       ),
       body: GoogleMap(
-        initialCameraPosition: _kBrasil,
+        initialCameraPosition: const CameraPosition(target: LatLng(-15.7, -47.8), zoom: 4),
         mapType: MapType.hybrid,
         markers: _markers,
         myLocationEnabled: true,
         myLocationButtonEnabled: true,
-        onMapCreated: (controller) {
-          _mapController = controller;
-          // Aguarda um pouco para o banco carregar e centraliza
-          Future.delayed(const Duration(milliseconds: 800), _fitBounds);
-        },
+        onMapCreated: (c) => _mapController = c,
       ),
     );
   }
