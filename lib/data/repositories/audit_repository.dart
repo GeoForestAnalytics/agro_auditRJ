@@ -5,44 +5,49 @@ import 'package:agro_audit_rj/models/audit_model.dart';
 class AuditRepository {
   final isar = LocalDB.instance;
 
-  // Streams para UI Reativa
+  // --- PROJETOS ---
   Stream<List<Project>> watchProjects() {
     return isar.projects.where().sortByName().watch(fireImmediately: true);
   }
 
+  // --- BENS (ASSETS) ---
   Stream<List<AssetItem>> watchAssets(int projectId) {
     return isar.assetItems
-        .filter().project((q) => q.idEqualTo(projectId))
+        .filter()
+        .project((q) => q.idEqualTo(projectId))
         .watch(fireImmediately: true);
   }
 
-  Stream<List<PropertyItem>> watchProperties(int projectId) {
-    return isar.propertyItems
-        .filter().project((q) => q.idEqualTo(projectId))
-        .watch(fireImmediately: true);
-  }
-
-  // Métodos Sync para o Relatório
   Future<List<AssetItem>> getAssetsSync(int projectId) async {
     return await isar.assetItems
-        .filter().project((q) => q.idEqualTo(projectId))
+        .filter()
+        .project((q) => q.idEqualTo(projectId))
         .findAll();
+  }
+
+  // --- FAZENDAS (PROPERTIES) ---
+  Stream<List<PropertyItem>> watchProperties(int projectId) {
+    return isar.propertyItems
+        .filter()
+        .project((q) => q.idEqualTo(projectId))
+        .watch(fireImmediately: true);
   }
 
   Future<List<PropertyItem>> getPropertiesSync(int projectId) async {
     return await isar.propertyItems
-        .filter().project((q) => q.idEqualTo(projectId))
+        .filter()
+        .project((q) => q.idEqualTo(projectId))
         .findAll();
   }
 
-  // Salvamento em Lote
+  // --- SALVAMENTO EM LOTE (EXCEL / DRONE) ---
   Future<void> saveAssets(List<AssetItem> items, Project project) async {
     await isar.writeTxn(() async {
       await isar.assetItems.putAll(items);
       for (var item in items) {
         item.project.value = project;
+        await item.project.save();
       }
-      await project.assets.save();
     });
   }
 
@@ -51,8 +56,17 @@ class AuditRepository {
       await isar.propertyItems.putAll(items);
       for (var item in items) {
         item.project.value = project;
+        await item.project.save();
       }
-      await project.properties.save();
     });
+  }
+
+  // --- ATUALIZAÇÕES INDIVIDUAIS ---
+  Future<void> updateAsset(AssetItem item) async {
+    await isar.writeTxn(() async => await isar.assetItems.put(item));
+  }
+
+  Future<void> updateProperty(PropertyItem item) async {
+    await isar.writeTxn(() async => await isar.propertyItems.put(item));
   }
 }
