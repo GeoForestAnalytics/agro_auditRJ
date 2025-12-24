@@ -5,7 +5,7 @@ import 'package:agro_audit_rj/models/audit_model.dart';
 class AuditRepository {
   final isar = LocalDB.instance;
 
-  // --- STREAMS (Para as Listas Reativas) ---
+  // Streams Reativos
   Stream<List<AssetItem>> watchAssets(int projectId) {
     return isar.assetItems
         .filter()
@@ -20,22 +20,7 @@ class AuditRepository {
         .watch(fireImmediately: true);
   }
 
-  // --- FETCH (Para o Relatório - Busca única) ---
-  Future<List<AssetItem>> getAssetsSync(int projectId) async {
-    return await isar.assetItems
-        .filter()
-        .project((q) => q.idEqualTo(projectId))
-        .findAll();
-  }
-
-  Future<List<PropertyItem>> getPropertiesSync(int projectId) async {
-    return await isar.propertyItems
-        .filter()
-        .project((q) => q.idEqualTo(projectId))
-        .findAll();
-  }
-
-  // --- SALVAMENTO EM LOTE ---
+  // Escrita em Lote (Alta Performance)
   Future<void> saveAssets(List<AssetItem> items, Project project) async {
     await isar.writeTxn(() async {
       await isar.assetItems.putAll(items);

@@ -39,6 +39,7 @@ dependencies:
   docx_template: # <--- Deixei sem versão propositalmente
   share_plus:    # <--- Deixei sem versão propositalmente
   gal: ^2.3.2
+  url_launcher: ^6.3.2
 
 dev_dependencies:
   flutter_test:

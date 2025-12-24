@@ -1,15 +1,20 @@
 import 'package:flutter/material.dart';
-import 'package:agro_audit_rj/data/local_db.dart'; // Import do Banco
-import 'package:agro_audit_rj/features/home/home_screen.dart'; // Import da Tela Home
+import 'package:flutter_riverpod/flutter_riverpod.dart'; // Import necessário
+import 'package:agro_audit_rj/data/local_db.dart';
+import 'package:agro_audit_rj/features/home/home_screen.dart';
 
 void main() async {
-  // Garante que o Flutter está pronto
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Inicializa o Banco de Dados antes do app abrir
+  // Inicializa o banco de dados
   await LocalDB.init();
   
-  runApp(const AgroAuditApp());
+  runApp(
+    // O ProviderScope armazena o estado de todos os providers
+    const ProviderScope(
+      child: AgroAuditApp(),
+    ),
+  );
 }
 
 class AgroAuditApp extends StatelessWidget {
@@ -19,20 +24,16 @@ class AgroAuditApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Agro Audit RJ',
-      debugShowCheckedModeBanner: false, // Remove a faixa "Debug"
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        // Define o Verde como cor padrão do App
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF2E7D32)),
         useMaterial3: true,
-        
-        // Estilo padrão dos cartões e botões
         appBarTheme: const AppBarTheme(
           backgroundColor: Color(0xFF2E7D32),
           foregroundColor: Colors.white,
+          centerTitle: true,
         ),
       ),
-      // AQUI ESTÁ O PULO DO GATO:
-      // Trocamos o Scaffold provisório pela tela real
       home: const HomeScreen(), 
     );
   }

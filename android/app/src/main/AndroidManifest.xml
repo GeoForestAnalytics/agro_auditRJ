@@ -9,7 +9,7 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     
-    <!-- Internet (Para Mapas) -->
+    <!-- Internet (Para Mapas e Waze) -->
     <uses-permission android:name="android.permission.INTERNET" />
 
     <!-- Armazenamento (Celulares Antigos - Android 12 ou menos) -->
@@ -53,13 +53,35 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+
+        <!-- ============================================================== -->
+        <!--   👇👇👇 ÁREA PARA ADICIONAR NOVAS CONFIGURAÇÕES 👇👇👇        -->
+        <!--   Coloque chaves de API, AdMob ou Firebase aqui abaixo         -->
+        <!-- ============================================================== -->
+
+        <!-- CHAVE DO GOOGLE MAPS (Obrigatório para o mapa aparecer) -->
+        <!-- Substitua o valor abaixo pela sua chave real quando tiver uma -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="SUA_CHAVE_GOOGLE_AQUI" />
+
     </application>
     
-    <!-- Configuração extra para compatibilidade de plugins -->
+    <!-- Configuração para o URL Launcher (Abrir Waze/Maps) funcionar -->
     <queries>
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+        <!-- Permite abrir o Google Maps -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="google.navigation" />
+        </intent>
+        <!-- Permite abrir o Waze -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="waze" />
         </intent>
     </queries>
 </manifest>
