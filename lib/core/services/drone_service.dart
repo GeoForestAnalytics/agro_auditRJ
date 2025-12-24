@@ -23,7 +23,7 @@ class DroneService {
       );
 
       final isar = LocalDB.instance;
-      int matchesFound = 0;
+      int matcheslocalizado = 0;
       List<String> logs = [];
 
       // 2. Carregar as Fazendas do Projeto
@@ -73,12 +73,12 @@ class DroneService {
               bestMatch.dronePhotoPaths = [...?bestMatch.dronePhotoPaths, image.path];
               
               // Opcional: Atualiza status se ainda estava pendente
-              if (bestMatch.status == AuditStatus.pending) {
-                bestMatch.status = AuditStatus.found;
+              if (bestMatch.status == AuditStatus.pendente) {
+                bestMatch.status = AuditStatus.localizado;
               }
               
               await isar.propertyItems.put(bestMatch);
-              matchesFound++;
+              matcheslocalizado++;
               logs.add("Foto vinculada a: ${bestMatch.name}");
             }
           }
@@ -94,7 +94,7 @@ class DroneService {
           title: const Text("Processamento Concluído"),
           content: Text(
             "Fotos processadas: ${images.length}\n"
-            "Vínculos automáticos: $matchesFound\n\n"
+            "Vínculos automáticos: $matcheslocalizado\n\n"
             "As fotos foram anexadas às fazendas baseadas na localização GPS."
           ),
           actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text("OK"))],

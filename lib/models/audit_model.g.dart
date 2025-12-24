@@ -889,38 +889,50 @@ const AssetItemSchema = CollectionSchema(
       name: r'description',
       type: IsarType.string,
     ),
-    r'municipality': PropertySchema(
+    r'finalidade': PropertySchema(
       id: 5,
+      name: r'finalidade',
+      type: IsarType.byte,
+      enumMap: _AssetItemfinalidadeEnumValueMap,
+    ),
+    r'municipality': PropertySchema(
+      id: 6,
       name: r'municipality',
       type: IsarType.string,
     ),
+    r'nivelEssencialidade': PropertySchema(
+      id: 7,
+      name: r'nivelEssencialidade',
+      type: IsarType.byte,
+      enumMap: _AssetItemnivelEssencialidadeEnumValueMap,
+    ),
     r'obsField': PropertySchema(
-      id: 6,
+      id: 8,
       name: r'obsField',
       type: IsarType.string,
     ),
     r'photoPaths': PropertySchema(
-      id: 7,
+      id: 9,
       name: r'photoPaths',
       type: IsarType.stringList,
     ),
     r'plate': PropertySchema(
-      id: 8,
+      id: 10,
       name: r'plate',
       type: IsarType.string,
     ),
     r'serialNumber': PropertySchema(
-      id: 9,
+      id: 11,
       name: r'serialNumber',
       type: IsarType.string,
     ),
     r'state': PropertySchema(
-      id: 10,
+      id: 12,
       name: r'state',
       type: IsarType.string,
     ),
     r'status': PropertySchema(
-      id: 11,
+      id: 13,
       name: r'status',
       type: IsarType.byte,
       enumMap: _AssetItemstatusEnumValueMap,
@@ -1012,13 +1024,15 @@ void _assetItemSerialize(
   writer.writeDouble(offsets[2], object.auditLong);
   writer.writeString(offsets[3], object.category);
   writer.writeString(offsets[4], object.description);
-  writer.writeString(offsets[5], object.municipality);
-  writer.writeString(offsets[6], object.obsField);
-  writer.writeStringList(offsets[7], object.photoPaths);
-  writer.writeString(offsets[8], object.plate);
-  writer.writeString(offsets[9], object.serialNumber);
-  writer.writeString(offsets[10], object.state);
-  writer.writeByte(offsets[11], object.status.index);
+  writer.writeByte(offsets[5], object.finalidade.index);
+  writer.writeString(offsets[6], object.municipality);
+  writer.writeByte(offsets[7], object.nivelEssencialidade.index);
+  writer.writeString(offsets[8], object.obsField);
+  writer.writeStringList(offsets[9], object.photoPaths);
+  writer.writeString(offsets[10], object.plate);
+  writer.writeString(offsets[11], object.serialNumber);
+  writer.writeString(offsets[12], object.state);
+  writer.writeByte(offsets[13], object.status.index);
 }
 
 AssetItem _assetItemDeserialize(
@@ -1033,16 +1047,22 @@ AssetItem _assetItemDeserialize(
   object.auditLong = reader.readDoubleOrNull(offsets[2]);
   object.category = reader.readString(offsets[3]);
   object.description = reader.readString(offsets[4]);
+  object.finalidade =
+      _AssetItemfinalidadeValueEnumMap[reader.readByteOrNull(offsets[5])] ??
+          FinalidadeBem.preparoSolo;
   object.id = id;
-  object.municipality = reader.readStringOrNull(offsets[5]);
-  object.obsField = reader.readStringOrNull(offsets[6]);
-  object.photoPaths = reader.readStringList(offsets[7]);
-  object.plate = reader.readStringOrNull(offsets[8]);
-  object.serialNumber = reader.readStringOrNull(offsets[9]);
-  object.state = reader.readStringOrNull(offsets[10]);
+  object.municipality = reader.readStringOrNull(offsets[6]);
+  object.nivelEssencialidade = _AssetItemnivelEssencialidadeValueEnumMap[
+          reader.readByteOrNull(offsets[7])] ??
+      NivelEssencialidade.maxima;
+  object.obsField = reader.readStringOrNull(offsets[8]);
+  object.photoPaths = reader.readStringList(offsets[9]);
+  object.plate = reader.readStringOrNull(offsets[10]);
+  object.serialNumber = reader.readStringOrNull(offsets[11]);
+  object.state = reader.readStringOrNull(offsets[12]);
   object.status =
-      _AssetItemstatusValueEnumMap[reader.readByteOrNull(offsets[11])] ??
-          AuditStatus.pending;
+      _AssetItemstatusValueEnumMap[reader.readByteOrNull(offsets[13])] ??
+          AuditStatus.pendente;
   return object;
 }
 
@@ -1064,36 +1084,71 @@ P _assetItemDeserializeProp<P>(
     case 4:
       return (reader.readString(offset)) as P;
     case 5:
-      return (reader.readStringOrNull(offset)) as P;
+      return (_AssetItemfinalidadeValueEnumMap[reader.readByteOrNull(offset)] ??
+          FinalidadeBem.preparoSolo) as P;
     case 6:
       return (reader.readStringOrNull(offset)) as P;
     case 7:
-      return (reader.readStringList(offset)) as P;
+      return (_AssetItemnivelEssencialidadeValueEnumMap[
+              reader.readByteOrNull(offset)] ??
+          NivelEssencialidade.maxima) as P;
     case 8:
       return (reader.readStringOrNull(offset)) as P;
     case 9:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readStringList(offset)) as P;
     case 10:
       return (reader.readStringOrNull(offset)) as P;
     case 11:
+      return (reader.readStringOrNull(offset)) as P;
+    case 12:
+      return (reader.readStringOrNull(offset)) as P;
+    case 13:
       return (_AssetItemstatusValueEnumMap[reader.readByteOrNull(offset)] ??
-          AuditStatus.pending) as P;
+          AuditStatus.pendente) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
   }
 }
 
+const _AssetItemfinalidadeEnumValueMap = {
+  'preparoSolo': 0,
+  'plantio': 1,
+  'colheita': 2,
+  'logistica': 3,
+  'manutencao': 4,
+  'tratosCulturais': 5,
+  'pecuaria': 6,
+};
+const _AssetItemfinalidadeValueEnumMap = {
+  0: FinalidadeBem.preparoSolo,
+  1: FinalidadeBem.plantio,
+  2: FinalidadeBem.colheita,
+  3: FinalidadeBem.logistica,
+  4: FinalidadeBem.manutencao,
+  5: FinalidadeBem.tratosCulturais,
+  6: FinalidadeBem.pecuaria,
+};
+const _AssetItemnivelEssencialidadeEnumValueMap = {
+  'maxima': 0,
+  'media': 1,
+  'minima': 2,
+};
+const _AssetItemnivelEssencialidadeValueEnumMap = {
+  0: NivelEssencialidade.maxima,
+  1: NivelEssencialidade.media,
+  2: NivelEssencialidade.minima,
+};
 const _AssetItemstatusEnumValueMap = {
-  'pending': 0,
-  'found': 1,
-  'notFound': 2,
-  'seized': 3,
+  'pendente': 0,
+  'localizado': 1,
+  'naolocalizado': 2,
+  'apreendido': 3,
 };
 const _AssetItemstatusValueEnumMap = {
-  0: AuditStatus.pending,
-  1: AuditStatus.found,
-  2: AuditStatus.notFound,
-  3: AuditStatus.seized,
+  0: AuditStatus.pendente,
+  1: AuditStatus.localizado,
+  2: AuditStatus.naolocalizado,
+  3: AuditStatus.apreendido,
 };
 
 Id _assetItemGetId(AssetItem object) {
@@ -1683,6 +1738,60 @@ extension AssetItemQueryFilter
     });
   }
 
+  QueryBuilder<AssetItem, AssetItem, QAfterFilterCondition> finalidadeEqualTo(
+      FinalidadeBem value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'finalidade',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetItem, AssetItem, QAfterFilterCondition>
+      finalidadeGreaterThan(
+    FinalidadeBem value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'finalidade',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetItem, AssetItem, QAfterFilterCondition> finalidadeLessThan(
+    FinalidadeBem value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'finalidade',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetItem, AssetItem, QAfterFilterCondition> finalidadeBetween(
+    FinalidadeBem lower,
+    FinalidadeBem upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'finalidade',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
   QueryBuilder<AssetItem, AssetItem, QAfterFilterCondition> idEqualTo(
       Id value) {
     return QueryBuilder.apply(this, (query) {
@@ -1885,6 +1994,62 @@ extension AssetItemQueryFilter
       return query.addFilterCondition(FilterCondition.greaterThan(
         property: r'municipality',
         value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<AssetItem, AssetItem, QAfterFilterCondition>
+      nivelEssencialidadeEqualTo(NivelEssencialidade value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'nivelEssencialidade',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetItem, AssetItem, QAfterFilterCondition>
+      nivelEssencialidadeGreaterThan(
+    NivelEssencialidade value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'nivelEssencialidade',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetItem, AssetItem, QAfterFilterCondition>
+      nivelEssencialidadeLessThan(
+    NivelEssencialidade value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'nivelEssencialidade',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<AssetItem, AssetItem, QAfterFilterCondition>
+      nivelEssencialidadeBetween(
+    NivelEssencialidade lower,
+    NivelEssencialidade upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'nivelEssencialidade',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
       ));
     });
   }
@@ -2858,6 +3023,18 @@ extension AssetItemQuerySortBy on QueryBuilder<AssetItem, AssetItem, QSortBy> {
     });
   }
 
+  QueryBuilder<AssetItem, AssetItem, QAfterSortBy> sortByFinalidade() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'finalidade', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AssetItem, AssetItem, QAfterSortBy> sortByFinalidadeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'finalidade', Sort.desc);
+    });
+  }
+
   QueryBuilder<AssetItem, AssetItem, QAfterSortBy> sortByMunicipality() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'municipality', Sort.asc);
@@ -2867,6 +3044,19 @@ extension AssetItemQuerySortBy on QueryBuilder<AssetItem, AssetItem, QSortBy> {
   QueryBuilder<AssetItem, AssetItem, QAfterSortBy> sortByMunicipalityDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'municipality', Sort.desc);
+    });
+  }
+
+  QueryBuilder<AssetItem, AssetItem, QAfterSortBy> sortByNivelEssencialidade() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'nivelEssencialidade', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AssetItem, AssetItem, QAfterSortBy>
+      sortByNivelEssencialidadeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'nivelEssencialidade', Sort.desc);
     });
   }
 
@@ -2993,6 +3183,18 @@ extension AssetItemQuerySortThenBy
     });
   }
 
+  QueryBuilder<AssetItem, AssetItem, QAfterSortBy> thenByFinalidade() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'finalidade', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AssetItem, AssetItem, QAfterSortBy> thenByFinalidadeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'finalidade', Sort.desc);
+    });
+  }
+
   QueryBuilder<AssetItem, AssetItem, QAfterSortBy> thenById() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'id', Sort.asc);
@@ -3014,6 +3216,19 @@ extension AssetItemQuerySortThenBy
   QueryBuilder<AssetItem, AssetItem, QAfterSortBy> thenByMunicipalityDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'municipality', Sort.desc);
+    });
+  }
+
+  QueryBuilder<AssetItem, AssetItem, QAfterSortBy> thenByNivelEssencialidade() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'nivelEssencialidade', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AssetItem, AssetItem, QAfterSortBy>
+      thenByNivelEssencialidadeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'nivelEssencialidade', Sort.desc);
     });
   }
 
@@ -3112,10 +3327,23 @@ extension AssetItemQueryWhereDistinct
     });
   }
 
+  QueryBuilder<AssetItem, AssetItem, QDistinct> distinctByFinalidade() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'finalidade');
+    });
+  }
+
   QueryBuilder<AssetItem, AssetItem, QDistinct> distinctByMunicipality(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'municipality', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<AssetItem, AssetItem, QDistinct>
+      distinctByNivelEssencialidade() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'nivelEssencialidade');
     });
   }
 
@@ -3198,9 +3426,23 @@ extension AssetItemQueryProperty
     });
   }
 
+  QueryBuilder<AssetItem, FinalidadeBem, QQueryOperations>
+      finalidadeProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'finalidade');
+    });
+  }
+
   QueryBuilder<AssetItem, String?, QQueryOperations> municipalityProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'municipality');
+    });
+  }
+
+  QueryBuilder<AssetItem, NivelEssencialidade, QQueryOperations>
+      nivelEssencialidadeProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'nivelEssencialidade');
     });
   }
 
@@ -3318,6 +3560,11 @@ const PropertyItemSchema = CollectionSchema(
       name: r'status',
       type: IsarType.byte,
       enumMap: _PropertyItemstatusEnumValueMap,
+    ),
+    r'tipologia': PropertySchema(
+      id: 13,
+      name: r'tipologia',
+      type: IsarType.string,
     )
   },
   estimateSize: _propertyItemEstimateSize,
@@ -3387,6 +3634,7 @@ int _propertyItemEstimateSize(
       bytesCount += 3 + value.length * 3;
     }
   }
+  bytesCount += 3 + object.tipologia.length * 3;
   return bytesCount;
 }
 
@@ -3409,6 +3657,7 @@ void _propertyItemSerialize(
   writer.writeDouble(offsets[10], object.referenceLong);
   writer.writeString(offsets[11], object.state);
   writer.writeByte(offsets[12], object.status.index);
+  writer.writeString(offsets[13], object.tipologia);
 }
 
 PropertyItem _propertyItemDeserialize(
@@ -3433,7 +3682,8 @@ PropertyItem _propertyItemDeserialize(
   object.state = reader.readStringOrNull(offsets[11]);
   object.status =
       _PropertyItemstatusValueEnumMap[reader.readByteOrNull(offsets[12])] ??
-          AuditStatus.pending;
+          AuditStatus.pendente;
+  object.tipologia = reader.readString(offsets[13]);
   return object;
 }
 
@@ -3470,23 +3720,25 @@ P _propertyItemDeserializeProp<P>(
       return (reader.readStringOrNull(offset)) as P;
     case 12:
       return (_PropertyItemstatusValueEnumMap[reader.readByteOrNull(offset)] ??
-          AuditStatus.pending) as P;
+          AuditStatus.pendente) as P;
+    case 13:
+      return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
   }
 }
 
 const _PropertyItemstatusEnumValueMap = {
-  'pending': 0,
-  'found': 1,
-  'notFound': 2,
-  'seized': 3,
+  'pendente': 0,
+  'localizado': 1,
+  'naolocalizado': 2,
+  'apreendido': 3,
 };
 const _PropertyItemstatusValueEnumMap = {
-  0: AuditStatus.pending,
-  1: AuditStatus.found,
-  2: AuditStatus.notFound,
-  3: AuditStatus.seized,
+  0: AuditStatus.pendente,
+  1: AuditStatus.localizado,
+  2: AuditStatus.naolocalizado,
+  3: AuditStatus.apreendido,
 };
 
 Id _propertyItemGetId(PropertyItem object) {
@@ -5299,6 +5551,142 @@ extension PropertyItemQueryFilter
       ));
     });
   }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      tipologiaEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'tipologia',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      tipologiaGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'tipologia',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      tipologiaLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'tipologia',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      tipologiaBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'tipologia',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      tipologiaStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'tipologia',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      tipologiaEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'tipologia',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      tipologiaContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'tipologia',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      tipologiaMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'tipologia',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      tipologiaIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'tipologia',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterFilterCondition>
+      tipologiaIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'tipologia',
+        value: '',
+      ));
+    });
+  }
 }
 
 extension PropertyItemQueryObject
@@ -5456,6 +5844,18 @@ extension PropertyItemQuerySortBy
       return query.addSortBy(r'status', Sort.desc);
     });
   }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterSortBy> sortByTipologia() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'tipologia', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterSortBy> sortByTipologiaDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'tipologia', Sort.desc);
+    });
+  }
 }
 
 extension PropertyItemQuerySortThenBy
@@ -5605,6 +6005,18 @@ extension PropertyItemQuerySortThenBy
       return query.addSortBy(r'status', Sort.desc);
     });
   }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterSortBy> thenByTipologia() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'tipologia', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QAfterSortBy> thenByTipologiaDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'tipologia', Sort.desc);
+    });
+  }
 }
 
 extension PropertyItemQueryWhereDistinct
@@ -5691,6 +6103,13 @@ extension PropertyItemQueryWhereDistinct
   QueryBuilder<PropertyItem, PropertyItem, QDistinct> distinctByStatus() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'status');
+    });
+  }
+
+  QueryBuilder<PropertyItem, PropertyItem, QDistinct> distinctByTipologia(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'tipologia', caseSensitive: caseSensitive);
     });
   }
 }
@@ -5781,6 +6200,12 @@ extension PropertyItemQueryProperty
   QueryBuilder<PropertyItem, AuditStatus, QQueryOperations> statusProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'status');
+    });
+  }
+
+  QueryBuilder<PropertyItem, String, QQueryOperations> tipologiaProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'tipologia');
     });
   }
 }

@@ -195,8 +195,8 @@ class _ProjectCard extends ConsumerWidget {
                   }
 
                   final total = assets.length;
-                  final found = assets.where((a) => a.status == AuditStatus.found).length;
-                  final progress = total > 0 ? found / total : 0.0;
+                  final localizado = assets.where((a) => a.status == AuditStatus.localizado).length;
+                  final progress = total > 0 ? localizado / total : 0.0;
 
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -209,7 +209,7 @@ class _ProjectCard extends ConsumerWidget {
                             style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Colors.grey[700])
                           ),
                           Text(
-                            "$found / $total itens", 
+                            "$localizado / $total itens", 
                             style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32))
                           ),
                         ],

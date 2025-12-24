@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:excel/excel.dart' as ex; // Alias para evitar conflito de nomes
+import 'package:excel/excel.dart' as ex; 
 import 'package:gap/gap.dart';
 import 'package:agro_audit_rj/models/audit_model.dart';
 import 'package:agro_audit_rj/data/providers/audit_providers.dart';
@@ -11,6 +11,7 @@ import 'package:agro_audit_rj/features/audit/asset_detail_screen.dart';
 import 'package:agro_audit_rj/features/audit/property_detail_screen.dart';
 import 'package:agro_audit_rj/features/map/map_screen.dart';
 import 'package:agro_audit_rj/core/services/export_service.dart';
+import 'package:agro_audit_rj/core/services/report_service.dart'; // Import do Relatório Visual
 import 'package:agro_audit_rj/core/services/drone_service.dart';
 
 class AuditScreen extends ConsumerStatefulWidget {
@@ -37,6 +38,7 @@ class _AuditScreenState extends ConsumerState<AuditScreen> with SingleTickerProv
     super.dispose();
   }
 
+  // Importação Excel (Mapeamento de colunas com Fallback para evitar erros)
   Future<void> _importExcel(bool isAsset) async {
     try {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
@@ -56,7 +58,6 @@ class _AuditScreenState extends ConsumerState<AuditScreen> with SingleTickerProv
           for (var i = 1; i < sheet.rows.length; i++) {
             var row = sheet.rows[i];
             if (row.isEmpty) continue;
-            // Pegando o valor da célula de forma segura para o Excel v4
             items.add(AssetItem()
               ..description = row[0]?.value?.toString() ?? 'Sem Descrição'
               ..serialNumber = (row.length > 1 ? row[1]?.value?.toString() : '') ?? ''
@@ -64,7 +65,7 @@ class _AuditScreenState extends ConsumerState<AuditScreen> with SingleTickerProv
               ..category = (row.length > 3 ? row[3]?.value?.toString() : 'Geral') ?? 'Geral'
               ..municipality = (row.length > 4 ? row[4]?.value?.toString() : '') ?? ''
               ..state = (row.length > 5 ? row[5]?.value?.toString() : '') ?? ''
-              ..status = AuditStatus.pending);
+              ..status = AuditStatus.pendente);
           }
           await ref.read(auditRepositoryProvider).saveAssets(items, widget.project);
         } else {
@@ -79,7 +80,7 @@ class _AuditScreenState extends ConsumerState<AuditScreen> with SingleTickerProv
               ..state = (row.length > 3 ? row[3]?.value?.toString() : '') ?? ''
               ..referenceLat = row.length > 4 ? double.tryParse(row[4]?.value?.toString() ?? '') : null
               ..referenceLong = row.length > 5 ? double.tryParse(row[5]?.value?.toString() ?? '') : null
-              ..status = AuditStatus.pending);
+              ..status = AuditStatus.pendente);
           }
           await ref.read(auditRepositoryProvider).saveProperties(props, widget.project);
         }
@@ -125,6 +126,7 @@ class _AuditScreenState extends ConsumerState<AuditScreen> with SingleTickerProv
           if (_isLoading)
             const Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator(color: Colors.white))
           else ...[
+            // 1. BOTÃO DE MAPA
             IconButton(
               icon: const Icon(Icons.map_outlined),
               tooltip: "Navegação em Campo",
@@ -132,9 +134,22 @@ class _AuditScreenState extends ConsumerState<AuditScreen> with SingleTickerProv
                 builder: (_) => MapScreen(projectId: widget.project.id)
               )),
             ),
+            // 2. BOTÃO DE RELATÓRIO VISUAL (O do vídeo)
+            IconButton(
+              icon: const Icon(Icons.description_outlined), 
+              tooltip: "Gerar Laudo com Fotos (Word/HTML)",
+              onPressed: () async {
+                setState(() => _isLoading = true);
+                final assets = await ref.read(auditRepositoryProvider).getAssetsSync(widget.project.id);
+                final props = await ref.read(auditRepositoryProvider).getPropertiesSync(widget.project.id);
+                await ReportService.generateProjectReport(widget.project, assets, props);
+                setState(() => _isLoading = false);
+              },
+            ),
+            // 3. BOTÃO DE EXPORTAR EXCEL (Dados Editáveis)
             IconButton(
               icon: const Icon(Icons.table_chart_outlined),
-              tooltip: "Exportar Excel",
+              tooltip: "Exportar Planilha de Dados",
               onPressed: () async {
                 setState(() => _isLoading = true);
                 final assets = await ref.read(auditRepositoryProvider).getAssetsSync(widget.project.id);
@@ -182,11 +197,11 @@ class _AssetsTab extends ConsumerWidget {
         separatorBuilder: (_, __) => const Divider(),
         itemBuilder: (context, index) {
           final item = assets[index];
-          final color = item.status == AuditStatus.found ? Colors.green : Colors.grey;
+          final color = item.status == AuditStatus.localizado ? Colors.green : Colors.grey;
           return ListTile(
             leading: CircleAvatar(
               backgroundColor: color,
-              child: Icon(item.status == AuditStatus.found ? Icons.check : Icons.priority_high, color: Colors.white, size: 18),
+              child: Icon(item.status == AuditStatus.localizado ? Icons.check : Icons.priority_high, color: Colors.white, size: 18),
             ),
             title: Text(item.description, style: const TextStyle(fontWeight: FontWeight.bold)),
             subtitle: Text("Série: ${item.serialNumber ?? 'N/A'}"),
@@ -197,7 +212,7 @@ class _AssetsTab extends ConsumerWidget {
                   builder: (_) => CameraCaptureScreen(assetName: item.description)
                 ));
                 if (res != null && res is Map) {
-                  item.status = AuditStatus.found;
+                  item.status = AuditStatus.localizado;
                   item.photoPaths = [...?item.photoPaths, res['path']];
                   item.auditLat = res['lat'];
                   item.auditLong = res['long'];
@@ -246,7 +261,7 @@ class _PropertiesTab extends ConsumerWidget {
               separatorBuilder: (_, __) => const Divider(),
               itemBuilder: (context, index) {
                 final item = props[index];
-                final color = item.status == AuditStatus.found ? Colors.green : Colors.brown[300];
+                final color = item.status == AuditStatus.localizado ? Colors.green : Colors.brown[300];
                 return ListTile(
                   leading: Icon(Icons.landscape, color: color),
                   title: Text(item.name, style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -258,7 +273,7 @@ class _PropertiesTab extends ConsumerWidget {
                         builder: (_) => CameraCaptureScreen(assetName: item.name)
                       ));
                       if (res != null && res is Map) {
-                        item.status = AuditStatus.found;
+                        item.status = AuditStatus.localizado;
                         item.photoPaths = [...?item.photoPaths, res['path']];
                         item.auditLat = res['lat'];
                         item.auditLong = res['long'];

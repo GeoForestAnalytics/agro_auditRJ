@@ -49,7 +49,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
     if (result != null && result is Map) {
       setState(() {
         _photos.add(result['path']);
-        if (_selectedStatus == AuditStatus.pending) _selectedStatus = AuditStatus.found;
+        if (_selectedStatus == AuditStatus.pendente) _selectedStatus = AuditStatus.localizado;
       });
     }
   }
