@@ -17,3 +17,12 @@ final assetsStreamProvider = StreamProvider.family<List<AssetItem>, int>((ref, p
 final propertiesStreamProvider = StreamProvider.family<List<PropertyItem>, int>((ref, projectId) {
   return ref.watch(auditRepositoryProvider).watchProperties(projectId);
 });
+
+// Providers GLOBAIS (Para o Mapa Geral)
+final allAssetsStreamProvider = StreamProvider<List<AssetItem>>((ref) {
+  return ref.watch(auditRepositoryProvider).watchAllAssets();
+});
+
+final allPropertiesStreamProvider = StreamProvider<List<PropertyItem>>((ref) {
+  return ref.watch(auditRepositoryProvider).watchAllProperties();
+});

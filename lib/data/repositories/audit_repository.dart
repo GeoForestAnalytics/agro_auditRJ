@@ -18,6 +18,10 @@ class AuditRepository {
         .watch(fireImmediately: true);
   }
 
+  Stream<List<AssetItem>> watchAllAssets() {
+    return isar.assetItems.where().watch(fireImmediately: true);
+  }
+
   Future<List<AssetItem>> getAssetsSync(int projectId) async {
     return await isar.assetItems
         .filter()
@@ -33,6 +37,10 @@ class AuditRepository {
         .watch(fireImmediately: true);
   }
 
+  Stream<List<PropertyItem>> watchAllProperties() {
+    return isar.propertyItems.where().watch(fireImmediately: true);
+  }
+
   Future<List<PropertyItem>> getPropertiesSync(int projectId) async {
     return await isar.propertyItems
         .filter()
@@ -40,7 +48,7 @@ class AuditRepository {
         .findAll();
   }
 
-  // --- SALVAMENTO EM LOTE (EXCEL / DRONE) ---
+  // --- SALVAMENTO EM LOTE ---
   Future<void> saveAssets(List<AssetItem> items, Project project) async {
     await isar.writeTxn(() async {
       await isar.assetItems.putAll(items);
