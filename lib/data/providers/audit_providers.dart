@@ -2,17 +2,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:agro_audit_rj/data/repositories/audit_repository.dart';
 import 'package:agro_audit_rj/models/audit_model.dart';
 
-// Provider do Repositório (Simples)
 final auditRepositoryProvider = Provider((ref) => AuditRepository());
 
-// StreamProvider para Bens (Assets) - Ele atualiza a tela automaticamente quando o banco muda
-final assetsStreamProvider = StreamProvider.family<List<AssetItem>, int>((ref, projectId) {
-  final repository = ref.watch(auditRepositoryProvider);
-  return repository.watchAssets(projectId);
+// Provider para a lista de projetos da Home
+final projectsStreamProvider = StreamProvider<List<Project>>((ref) {
+  return ref.watch(auditRepositoryProvider).watchProjects();
 });
 
-// StreamProvider para Fazendas (Properties)
+// Providers para itens de um projeto específico
+final assetsStreamProvider = StreamProvider.family<List<AssetItem>, int>((ref, projectId) {
+  return ref.watch(auditRepositoryProvider).watchAssets(projectId);
+});
+
 final propertiesStreamProvider = StreamProvider.family<List<PropertyItem>, int>((ref, projectId) {
-  final repository = ref.watch(auditRepositoryProvider);
-  return repository.watchProperties(projectId);
+  return ref.watch(auditRepositoryProvider).watchProperties(projectId);
 });
