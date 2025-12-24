@@ -63,7 +63,7 @@
         <!-- Substitua o valor abaixo pela sua chave real quando tiver uma -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="SUA_CHAVE_GOOGLE_AQUI" />
+            android:value="AIzaSyAiRTzozzPmTfHu_wmlXGE0z2reOUp00_U" />
 
     </application>
     

@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:agro_audit_rj/data/providers/audit_providers.dart';
 import 'package:agro_audit_rj/models/audit_model.dart';
-import 'package:agro_audit_rj/features/audit/audit_screen.dart'; // Import da tela real
+import 'package:agro_audit_rj/features/audit/audit_screen.dart';
 import 'package:agro_audit_rj/data/local_db.dart';
 import 'package:isar/isar.dart';
+import 'package:gap/gap.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -17,7 +18,10 @@ class HomeScreen extends ConsumerWidget {
         title: Text(project == null ? 'Novo Projeto' : 'Editar Projeto'),
         content: TextField(
           controller: textController,
-          decoration: const InputDecoration(labelText: 'Nome do Cliente / Grupo', border: OutlineInputBorder()),
+          decoration: const InputDecoration(
+            labelText: 'Nome do Cliente / Grupo', 
+            border: OutlineInputBorder()
+          ),
           autofocus: true,
         ),
         actions: [
@@ -28,7 +32,9 @@ class HomeScreen extends ConsumerWidget {
                 final isar = LocalDB.instance;
                 await isar.writeTxn(() async {
                   if (project == null) {
-                    final newProject = Project()..name = textController.text..createdAt = DateTime.now();
+                    final newProject = Project()
+                      ..name = textController.text
+                      ..createdAt = DateTime.now();
                     await isar.projects.put(newProject);
                   } else {
                     project.name = textController.text;
@@ -50,7 +56,7 @@ class HomeScreen extends ConsumerWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Excluir Projeto?'),
-        content: Text('Isso apagará tudo de "${project.name}".'),
+        content: Text('Isso apagará tudo de "${project.name}". Esta ação não pode ser desfeita.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
           TextButton(
@@ -80,31 +86,18 @@ class HomeScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, stack) => Center(child: Text("Erro: $err")),
         data: (projects) {
-          if (projects.isEmpty) return const Center(child: Text('Nenhum projeto ainda. Clique no +'));
+          if (projects.isEmpty) {
+            return const Center(child: Text('Nenhum projeto ainda. Clique no +'));
+          }
           return ListView.builder(
             padding: const EdgeInsets.all(16),
             itemCount: projects.length,
             itemBuilder: (context, index) {
               final project = projects[index];
-              return Card(
-                elevation: 3,
-                margin: const EdgeInsets.only(bottom: 12),
-                child: ListTile(
-                  leading: const CircleAvatar(backgroundColor: Color(0xFF2E7D32), child: Icon(Icons.agriculture, color: Colors.white)),
-                  title: Text(project.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text('Criado em: ${project.createdAt.day}/${project.createdAt.month}/${project.createdAt.year}'),
-                  trailing: PopupMenuButton(
-                    onSelected: (val) {
-                      if (val == 'edit') _showProjectDialog(context, project: project);
-                      if (val == 'delete') _confirmDelete(context, project);
-                    },
-                    itemBuilder: (ctx) => [
-                      const PopupMenuItem(value: 'edit', child: Text('Editar')),
-                      const PopupMenuItem(value: 'delete', child: Text('Excluir', style: TextStyle(color: Colors.red))),
-                    ],
-                  ),
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (ctx) => AuditScreen(project: project))),
-                ),
+              return _ProjectCard(
+                project: project,
+                onEdit: () => _showProjectDialog(context, project: project),
+                onDelete: () => _confirmDelete(context, project),
               );
             },
           );
@@ -114,6 +107,135 @@ class HomeScreen extends ConsumerWidget {
         onPressed: () => _showProjectDialog(context),
         label: const Text('Novo Projeto'),
         icon: const Icon(Icons.add),
+        backgroundColor: const Color(0xFF2E7D32),
+        foregroundColor: Colors.white,
+      ),
+    );
+  }
+}
+
+/// Widget interno para o Card de Projeto com barra de progresso reativa
+class _ProjectCard extends ConsumerWidget {
+  final Project project;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  const _ProjectCard({
+    required this.project,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Escuta apenas os bens deste projeto para calcular o progresso
+    final assetsAsync = ref.watch(assetsStreamProvider(project.id));
+
+    return Card(
+      elevation: 3,
+      margin: const EdgeInsets.only(bottom: 16),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => Navigator.push(
+          context, 
+          MaterialPageRoute(builder: (ctx) => AuditScreen(project: project))
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const CircleAvatar(
+                    backgroundColor: Color(0xFF2E7D32),
+                    child: Icon(Icons.agriculture, color: Colors.white),
+                  ),
+                  const Gap(12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          project.name, 
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)
+                        ),
+                        Text(
+                          'Criado em: ${project.createdAt.day}/${project.createdAt.month}/${project.createdAt.year}',
+                          style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+                  PopupMenuButton(
+                    onSelected: (val) {
+                      if (val == 'edit') onEdit();
+                      if (val == 'delete') onDelete();
+                    },
+                    itemBuilder: (ctx) => [
+                      const PopupMenuItem(value: 'edit', child: Text('Editar Nome')),
+                      const PopupMenuItem(
+                        value: 'delete', 
+                        child: Text('Excluir Tudo', style: TextStyle(color: Colors.red))
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const Gap(16),
+              
+              // SEÇÃO DE PROGRESSO (DASHBOARD)
+              assetsAsync.when(
+                loading: () => const LinearProgressIndicator(),
+                error: (_, __) => const SizedBox.shrink(),
+                data: (assets) {
+                  if (assets.isEmpty) {
+                    return const Text("Nenhum bem importado", style: TextStyle(fontSize: 12, color: Colors.grey));
+                  }
+
+                  final total = assets.length;
+                  final found = assets.where((a) => a.status == AuditStatus.found).length;
+                  final progress = total > 0 ? found / total : 0.0;
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            "Progresso da Coleta", 
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Colors.grey[700])
+                          ),
+                          Text(
+                            "$found / $total itens", 
+                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32))
+                          ),
+                        ],
+                      ),
+                      const Gap(6),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: LinearProgressIndicator(
+                          value: progress,
+                          backgroundColor: Colors.grey[200],
+                          color: progress == 1.0 ? Colors.blue : const Color(0xFF2E7D32),
+                          minHeight: 8,
+                        ),
+                      ),
+                      if (progress == 1.0)
+                        const Padding(
+                          padding: EdgeInsets.only(top: 4),
+                          child: Text("✅ Coleta de campo concluída!", style: TextStyle(fontSize: 10, color: Colors.blue, fontWeight: FontWeight.bold)),
+                        ),
+                    ],
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
